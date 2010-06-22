@@ -23,7 +23,7 @@ class Saml2Backend(ModelBackend):
         if session_info is None:
             return None
 
-        if not session_info.has_key('ava'):
+        if not 'ava' in session_info:
             return None
 
         ava = session_info['ava']
@@ -45,5 +45,3 @@ class Saml2Backend(ModelBackend):
 
     def _update_user_attributes(self, user, attributes):
         """TODO"""
-
-
