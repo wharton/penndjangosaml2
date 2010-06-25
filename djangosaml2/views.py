@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import cgi
+import copy
 
 from django.conf import settings
 from django.contrib import auth
@@ -20,11 +20,15 @@ from django.http import HttpResponse, HttpResponseRedirect
 
 from saml2.client import Saml2Client
 from saml2.config import Config
+from saml2.metadata import entity_descriptor, entities_descriptor
+from saml2.sigver import SecurityContext
+
+from djangosaml2.models import OutstandingQuery
 
 
 def _load_conf():
     conf = Config()
-    conf.load_file(settings.SAML_CONFIG_FILE)
+    conf.load(copy.deepcopy(settings.SAML_CONFIG))
     return conf
 
 
@@ -34,12 +38,16 @@ def login(request):
     srv = conf['service']['sp']
     idp_url = srv['idp'].values()[0]
     client = Saml2Client(None, conf)
+
     (session_id, result) = client.authenticate(
-        conf['entityid'],
-        idp_url,
-        srv['url'],
-        srv['name'],
+        spentityid=conf['entityid'],
+        location=idp_url,
+        service_url=srv['url'],
+        my_name=srv['name'],
         relay_state=next)
+
+    OutstandingQuery.objects.create(session_id=session_id,
+                                    came_from=next)
 
     redirect_url = result[1]
     return HttpResponseRedirect(redirect_url)
@@ -47,16 +55,29 @@ def login(request):
 
 def assertion_consumer_service(request):
     conf = _load_conf()
-    response = cgi.MiniFieldStorage('SAMLResponse',
-                                    request.POST['SAMLResponse'])
-    post = {'SAMLResponse': response}
+    post = {'SAMLResponse': request.POST['SAMLResponse']}
     client = Saml2Client(None, conf)
-    session_info = client.response(post, conf['entityid'], None)
+    response = client.response(post, conf['entityid'],
+                               OutstandingQuery.objects.as_dict())
+    OutstandingQuery.objects.clear_session(response.session_id())
 
-    user = auth.authenticate(session_info=session_info)
+    user = auth.authenticate(session_info=response.session_info())
     if user is None:
         return HttpResponse("user not valid")
 
     auth.login(request, user)
     relay_state = request.POST.get('RelayState', '/')
     return HttpResponseRedirect(relay_state)
+
+
+def metadata(request):
+    ed_id = getattr(settings, 'SAML_METADATA_ID', '')
+    name = getattr(settings, 'SAML_METADATA_NAME', '')
+    sign = getattr(settings, 'SAML_METADATA_SIGN', False)
+    conf = _load_conf()
+    valid_for = conf.get('valid_for', 24)
+    output = entities_descriptor([entity_descriptor(conf, valid_for)],
+                                 valid_for, name, ed_id, sign,
+                                 SecurityContext(conf.xmlsec(),
+                                                 conf['key_file']))
+    return HttpResponse(content=output, content_type="text/xml; charset=utf8")

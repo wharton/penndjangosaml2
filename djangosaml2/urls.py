@@ -18,4 +18,5 @@ urlpatterns = patterns(
     'djangosaml2.views',
     (r'^login/$', 'login'),
     (r'^acs/$', 'assertion_consumer_service'),
+    (r'^metadata/$', 'metadata'),
 )
