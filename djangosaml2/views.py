@@ -27,13 +27,20 @@ from djangosaml2.models import OutstandingQuery
 
 
 def _load_conf():
+    """Utility function to load the pysaml2 configuration"""
     conf = Config()
     conf.load(copy.deepcopy(settings.SAML_CONFIG))
     return conf
 
 
 def login(request):
-    next = request.GET.get('next', '/')
+    """SAML Authorization Request initiator
+
+    This view initiates the SAML2 Authorization handshake
+    using the pysaml2 library to create the AuthnRequest.
+    It uses the SAML 2.0 Http Redirect protocol binding.
+    """
+    came_from = request.GET.get('next', '/')
     conf = _load_conf()
     srv = conf['service']['sp']
     idp_url = srv['idp'].values()[0]
@@ -44,16 +51,24 @@ def login(request):
         location=idp_url,
         service_url=srv['url'],
         my_name=srv['name'],
-        relay_state=next)
+        relay_state=came_from)
 
     OutstandingQuery.objects.create(session_id=session_id,
-                                    came_from=next)
+                                    came_from=came_from)
 
     redirect_url = result[1]
     return HttpResponseRedirect(redirect_url)
 
 
 def assertion_consumer_service(request):
+    """SAML Authorization Response endpoint
+
+    The IdP will send its response to this view, which
+    will process it with pysaml2 help and log the user
+    in using the custom Authorization backend
+    djangosaml2.backends.Saml2Backend that should be
+    enabled in the settings.py
+    """
     conf = _load_conf()
     post = {'SAMLResponse': request.POST['SAMLResponse']}
     client = Saml2Client(None, conf)
@@ -71,6 +86,9 @@ def assertion_consumer_service(request):
 
 
 def metadata(request):
+    """Returns an XML with the SAML 2.0 metadata for this
+    SP as configured in the settings.py file.
+    """
     ed_id = getattr(settings, 'SAML_METADATA_ID', '')
     name = getattr(settings, 'SAML_METADATA_NAME', '')
     sign = getattr(settings, 'SAML_METADATA_SIGN', False)
