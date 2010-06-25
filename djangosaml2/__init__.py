@@ -33,10 +33,11 @@
 # (r'^saml2/', include('djangosaml2.urls')),
 # ...
 #
-# 3. Set the SAML config file (see pysaml2 docs for more information
-# about this file)
+# 3. Set the pysaml configuration in the SAML_CONFIG constant of the settings.py
+# file. It is basically a big dictionary with plenty of options. Check pysaml2
+#  docs for more information about the configuration dictionary.
 #
-# SAML_CONFIG_FILE = path.join(BASEDIR, 'sp.config')
+# SAML_CONFIG = { ... }
 #
 # 4. Set the attribute that links the saml identity with the Django username
 #
