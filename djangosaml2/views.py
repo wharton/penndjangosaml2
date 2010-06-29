@@ -14,15 +14,20 @@
 # limitations under the License.
 
 import copy
+import urllib
 
 from django.conf import settings
 from django.contrib import auth
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.views import logout as django_logout
 from django.http import HttpResponse, HttpResponseRedirect
+from django.views.decorators.csrf import csrf_exempt
 
 from saml2.client import Saml2Client
 from saml2.config import Config
 from saml2.metadata import entity_descriptor, entities_descriptor
 from saml2.sigver import SecurityContext
+from saml2.utils import deflate_and_base64_encode
 
 from djangosaml2.models import OutstandingQuery
 
@@ -44,7 +49,7 @@ def login(request):
     came_from = request.GET.get('next', '/')
     conf = _load_conf()
     srv = conf['service']['sp']
-    idp_url = srv['idp'].values()[0]
+    idp_url = srv['idp'].values()[0]['sso_service']
     client = Saml2Client(None, conf)
 
     (session_id, result) = client.authenticate(
@@ -61,6 +66,7 @@ def login(request):
     return HttpResponseRedirect(redirect_url)
 
 
+@csrf_exempt
 def assertion_consumer_service(request):
     """SAML Authorization Response endpoint
 
@@ -75,15 +81,62 @@ def assertion_consumer_service(request):
     client = Saml2Client(None, conf)
     response = client.response(post, conf['entityid'],
                                OutstandingQuery.objects.as_dict())
-    OutstandingQuery.objects.clear_session(response.session_id())
+    session_id = response.session_id()
+    session_info = response.session_info()
+    OutstandingQuery.objects.clear_session(session_id)
 
-    user = auth.authenticate(session_info=response.session_info())
+    user = auth.authenticate(session_info=session_info)
     if user is None:
         return HttpResponse("user not valid")
 
     auth.login(request, user)
+    request.session['SAML_SESSION_ID'] = session_id
+    request.session['SAML_SUBJECT_ID'] = session_info['name_id']
     relay_state = request.POST.get('RelayState', '/')
     return HttpResponseRedirect(relay_state)
+
+
+@login_required
+def logout(request):
+    """SAML Logout Request initiator
+
+    This view initiates the SAML2 Logout request
+    using the pysaml2 library to create the LogoutRequest.
+    """
+    conf = _load_conf()
+    srv = conf['service']['sp']
+    idp_url = srv['idp'].values()[0]['logout_service']
+    client = Saml2Client(None, conf)
+    session_id = request.session['SAML_SESSION_ID']
+    subject_id = request.session['SAML_SUBJECT_ID']
+    logout_req = client.logout(session_id,
+                               destination=idp_url,
+                               issuer=conf['entityid'],
+                               subject_id=subject_id)
+
+    print logout_req
+    arg = urllib.quote_plus(deflate_and_base64_encode(str(logout_req)))
+    redirect_url = "%s?SAMLRequest=%s" % (idp_url, arg)
+
+    return HttpResponseRedirect(redirect_url)
+
+
+def logout_service(request):
+    """SAML Logout Response endpoint
+
+    The IdP will send the logout response to this view,
+    which will process it with pysaml2 help and log the user
+    out.
+    Note that the IdP can request a logout even when
+    we didn't initiate the process as a single logout
+    request started by another SP.
+    """
+    client = Saml2Client(None, _load_conf())
+    success = client.logout_response(request.GET)
+    if success:
+        return django_logout(request)
+    else:
+        return HttpResponse('Error during logout')
 
 
 def metadata(request):
