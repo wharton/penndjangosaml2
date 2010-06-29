@@ -114,7 +114,6 @@ def logout(request):
                                issuer=conf['entityid'],
                                subject_id=subject_id)
 
-    print logout_req
     arg = urllib.quote_plus(deflate_and_base64_encode(str(logout_req)))
     redirect_url = "%s?SAMLRequest=%s" % (idp_url, arg)
 
