@@ -14,7 +14,6 @@
 # limitations under the License.
 
 import copy
-import urllib
 
 from django.conf import settings
 from django.contrib import auth
@@ -27,7 +26,6 @@ from saml2.client import Saml2Client
 from saml2.config import Config
 from saml2.metadata import entity_descriptor, entities_descriptor
 from saml2.sigver import SecurityContext
-from saml2.utils import deflate_and_base64_encode
 
 from djangosaml2.models import OutstandingQuery
 
@@ -114,10 +112,7 @@ def logout(request):
                                issuer=conf['entityid'],
                                subject_id=subject_id)
 
-    arg = urllib.quote_plus(deflate_and_base64_encode(str(logout_req)))
-    redirect_url = "%s?SAMLRequest=%s" % (idp_url, arg)
-
-    return HttpResponseRedirect(redirect_url)
+    return HttpResponseRedirect("%s?SAMLRequest=%s" % (idp_url, logout_req))
 
 
 def logout_service(request):
