@@ -34,9 +34,9 @@
 # (r'^saml2/', include('djangosaml2.urls')),
 # ...
 #
-# 3. Set the pysaml configuration in the SAML_CONFIG constant of the settings.py
-# file. It is basically a big dictionary with plenty of options. Check pysaml2
-#  docs for more information about the configuration dictionary.
+# 3. Set the pysaml configuration in the SAML_CONFIG constant of the
+# settings.py file. It is basically a big dictionary with plenty of options.
+# Check pysaml2 docs for more information about the configuration dictionary.
 #
 # SAML_CONFIG = { ... }
 #
