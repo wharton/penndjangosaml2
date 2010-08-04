@@ -46,16 +46,13 @@ def login(request):
     """
     came_from = request.GET.get('next', '/')
     conf = _load_conf()
-    srv = conf['service']['sp']
-    idp_url = srv['idp'].values()[0]['sso_service']
-    client = Saml2Client(None, conf)
+    idps = conf.idps()
+    # TODO: check if a WAYF service is needed
+    idp_url = idps[0]['sso_service']
 
-    (session_id, result) = client.authenticate(
-        spentityid=conf['entityid'],
-        location=idp_url,
-        service_url=srv['url'],
-        my_name=srv['name'],
-        relay_state=came_from)
+    client = Saml2Client(conf)
+    (session_id, result) = client.authenticate(location=idp_url,
+                                               relay_state=came_from)
 
     OutstandingQuery.objects.create(session_id=session_id,
                                     came_from=came_from)
@@ -76,7 +73,7 @@ def assertion_consumer_service(request):
     """
     conf = _load_conf()
     post = {'SAMLResponse': request.POST['SAMLResponse']}
-    client = Saml2Client(None, conf)
+    client = Saml2Client(conf)
     response = client.response(post, conf['entityid'],
                                OutstandingQuery.objects.as_dict())
     session_id = response.session_id()
@@ -104,7 +101,7 @@ def logout(request):
     conf = _load_conf()
     srv = conf['service']['sp']
     idp_url = srv['idp'].values()[0]['logout_service']
-    client = Saml2Client(None, conf)
+    client = Saml2Client(conf)
     session_id = request.session['SAML_SESSION_ID']
     subject_id = request.session['SAML_SUBJECT_ID']
     logout_req = client.logout(session_id,
@@ -125,7 +122,7 @@ def logout_service(request):
     we didn't initiate the process as a single logout
     request started by another SP.
     """
-    client = Saml2Client(None, _load_conf())
+    client = Saml2Client(_load_conf())
     success = client.logout_response(request.GET)
     if success:
         return django_logout(request)
