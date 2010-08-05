@@ -50,7 +50,7 @@ def login(request):
     # TODO: check if a WAYF service is needed
     idp_url = idps[0]['sso_service']
 
-    client = Saml2Client(conf)
+    client = Saml2Client(conf, persistent_cache='cache.saml')
     (session_id, result) = client.authenticate(location=idp_url,
                                                relay_state=came_from)
 
@@ -73,7 +73,7 @@ def assertion_consumer_service(request):
     """
     conf = _load_conf()
     post = {'SAMLResponse': request.POST['SAMLResponse']}
-    client = Saml2Client(conf)
+    client = Saml2Client(conf, persistent_cache='cache.saml')
     response = client.response(post, conf['entityid'],
                                OutstandingQuery.objects.as_dict())
     session_id = response.session_id()
@@ -98,18 +98,17 @@ def logout(request):
     This view initiates the SAML2 Logout request
     using the pysaml2 library to create the LogoutRequest.
     """
-    conf = _load_conf()
-    srv = conf['service']['sp']
-    idp_url = srv['idp'].values()[0]['logout_service']
-    client = Saml2Client(conf)
-    session_id = request.session['SAML_SESSION_ID']
+    client = Saml2Client(_load_conf(), persistent_cache='cache.saml')
+#    session_id = request.session['SAML_SESSION_ID']
     subject_id = request.session['SAML_SUBJECT_ID']
-    logout_req = client.logout(session_id,
-                               destination=idp_url,
-                               issuer=conf['entityid'],
-                               subject_id=subject_id)
+    result = client.global_logout(subject_id)
 
-    return HttpResponseRedirect("%s?SAMLRequest=%s" % (idp_url, logout_req))
+# session_id,
+#                                destination=idp_url,
+#                                issuer=conf['entityid'],
+#                                subject_id=subject_id)
+
+    return HttpResponseRedirect(result[0])
 
 
 def logout_service(request):
@@ -122,7 +121,7 @@ def logout_service(request):
     we didn't initiate the process as a single logout
     request started by another SP.
     """
-    client = Saml2Client(_load_conf())
+    client = Saml2Client(_load_conf(), persistent_cache='cache.saml')
     success = client.logout_response(request.GET)
     if success:
         return django_logout(request)
