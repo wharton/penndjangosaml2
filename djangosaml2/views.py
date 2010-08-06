@@ -85,7 +85,7 @@ def assertion_consumer_service(request):
         return HttpResponse("user not valid")
 
     auth.login(request, user)
-    request.session['SAML_SESSION_ID'] = session_id
+#    request.session['SAML_SESSION_ID'] = session_id
     request.session['SAML_SUBJECT_ID'] = session_info['name_id']
     relay_state = request.POST.get('RelayState', '/')
     return HttpResponseRedirect(relay_state)
@@ -103,11 +103,6 @@ def logout(request):
     subject_id = request.session['SAML_SUBJECT_ID']
     result = client.global_logout(subject_id)
 
-# session_id,
-#                                destination=idp_url,
-#                                issuer=conf['entityid'],
-#                                subject_id=subject_id)
-
     return HttpResponseRedirect(result[0])
 
 
@@ -122,7 +117,11 @@ def logout_service(request):
     request started by another SP.
     """
     client = Saml2Client(_load_conf(), persistent_cache='cache.saml')
-    success = client.logout_response(request.GET)
+#    success = client.logout_response(request.GET)
+    subject_id = request.session['SAML_SUBJECT_ID']
+    # TODO: process the logout response properly instead of
+    # of calling directly to local_logout()
+    success = client.local_logout(subject_id)
     if success:
         return django_logout(request)
     else:
