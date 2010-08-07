@@ -19,7 +19,7 @@ from django.conf import settings
 from django.contrib import auth
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import logout as django_logout
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import Http404, HttpResponse, HttpResponseRedirect
 from django.views.decorators.csrf import csrf_exempt
 
 from saml2.cache import Cache
@@ -117,10 +117,24 @@ def logout_service(request):
     """
     client = Saml2Client(_load_conf(), persistent_cache=Cache('cache.saml'))
     subject_id = request.session['SAML_SUBJECT_ID']
-    if client.logout_response(request.GET, subject_id):
-        return django_logout(request)
+
+    if 'SAMLResponse' in request.GET:  # we started the logout
+        if client.logout_response(request.GET, subject_id):
+            return django_logout(request)
+        else:
+            return HttpResponse('Error during logout')
+
+    elif 'SAMLRequest' in request.GET:  # logout started by the IdP
+        url, success = client.logout_request(request.GET, subject_id)
+        if success:
+            auth.logout(request)
+            return HttpResponseRedirect(url)
+        elif url is not None:
+            return HttpResponseRedirect(url)
+        else:
+            return HttpResponse('Error during logout')
     else:
-        return HttpResponse('Error during logout')
+        raise Http404('No SAMLResponse or SAMLRequest parameter found')
 
 
 def metadata(request):
