@@ -116,12 +116,8 @@ def logout_service(request):
     request started by another SP.
     """
     client = Saml2Client(_load_conf(), persistent_cache=Cache('cache.saml'))
-#    success = client.logout_response(request.GET)
     subject_id = request.session['SAML_SUBJECT_ID']
-    # TODO: process the logout response properly instead of
-    # of calling directly to local_logout()
-    success = client.local_logout(subject_id)
-    if success:
+    if client.logout_response(request.GET, subject_id):
         return django_logout(request)
     else:
         return HttpResponse('Error during logout')
