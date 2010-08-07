@@ -22,6 +22,7 @@ from django.contrib.auth.views import logout as django_logout
 from django.http import HttpResponse, HttpResponseRedirect
 from django.views.decorators.csrf import csrf_exempt
 
+from saml2.cache import Cache
 from saml2.client import Saml2Client
 from saml2.config import Config
 from saml2.metadata import entity_descriptor, entities_descriptor
@@ -50,7 +51,7 @@ def login(request):
     # TODO: check if a WAYF service is needed
     idp_url = idps[0]['sso_service']
 
-    client = Saml2Client(conf, persistent_cache='cache.saml')
+    client = Saml2Client(conf, persistent_cache=Cache('cache.saml'))
     (session_id, result) = client.authenticate(location=idp_url,
                                                relay_state=came_from)
 
@@ -73,7 +74,7 @@ def assertion_consumer_service(request):
     """
     conf = _load_conf()
     post = {'SAMLResponse': request.POST['SAMLResponse']}
-    client = Saml2Client(conf, persistent_cache='cache.saml')
+    client = Saml2Client(conf, persistent_cache=Cache('cache.saml'))
     response = client.response(post, conf['entityid'],
                                OutstandingQuery.objects.as_dict())
     session_id = response.session_id()
@@ -85,7 +86,6 @@ def assertion_consumer_service(request):
         return HttpResponse("user not valid")
 
     auth.login(request, user)
-#    request.session['SAML_SESSION_ID'] = session_id
     request.session['SAML_SUBJECT_ID'] = session_info['name_id']
     relay_state = request.POST.get('RelayState', '/')
     return HttpResponseRedirect(relay_state)
@@ -98,8 +98,7 @@ def logout(request):
     This view initiates the SAML2 Logout request
     using the pysaml2 library to create the LogoutRequest.
     """
-    client = Saml2Client(_load_conf(), persistent_cache='cache.saml')
-#    session_id = request.session['SAML_SESSION_ID']
+    client = Saml2Client(_load_conf(), persistent_cache=Cache('cache.saml'))
     subject_id = request.session['SAML_SUBJECT_ID']
     result = client.global_logout(subject_id)
 
@@ -116,7 +115,7 @@ def logout_service(request):
     we didn't initiate the process as a single logout
     request started by another SP.
     """
-    client = Saml2Client(_load_conf(), persistent_cache='cache.saml')
+    client = Saml2Client(_load_conf(), persistent_cache=Cache('cache.saml'))
 #    success = client.logout_response(request.GET)
     subject_id = request.session['SAML_SUBJECT_ID']
     # TODO: process the logout response properly instead of
