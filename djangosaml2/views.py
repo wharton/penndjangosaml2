@@ -20,6 +20,8 @@ from django.contrib import auth
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import logout as django_logout
 from django.http import Http404, HttpResponse, HttpResponseRedirect
+from django.shortcuts import render_to_response
+from django.template import RequestContext
 from django.views.decorators.csrf import csrf_exempt
 
 from saml2.cache import Cache
@@ -46,13 +48,23 @@ def login(request):
     It uses the SAML 2.0 Http Redirect protocol binding.
     """
     came_from = request.GET.get('next', '/')
+    selected_idp = request.GET.get('idp', None)
     conf = _load_conf()
-    idps = conf.idps()
-    # TODO: check if a WAYF service is needed
-    idp_url = idps[0]['sso_service']
+    if selected_idp is None and conf.is_wayf_needed():
+        return render_to_response('djangosaml2/wayf.html', {
+                'available_idps': conf.get_available_idps(),
+                'came_from': came_from,
+                }, context_instance=RequestContext(request))
+
+    if selected_idp is None:
+        # there should be only one IdP since no wayf service is needed
+        idps = conf.get_available_idps()
+        idp_sso = conf.sso_service(idps[0][0])
+    else:
+        idp_sso = conf.sso_service(selected_idp)
 
     client = Saml2Client(conf, persistent_cache=Cache('cache.saml'))
-    (session_id, result) = client.authenticate(location=idp_url,
+    (session_id, result) = client.authenticate(location=idp_sso,
                                                relay_state=came_from)
 
     OutstandingQuery.objects.create(session_id=session_id,
