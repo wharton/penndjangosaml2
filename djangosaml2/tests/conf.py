@@ -77,8 +77,8 @@ def create_conf(sp_host='sp.example.com', idp_hosts=['idp.example.com']):
                 'logout_service': 'https://%s/simplesaml/saml2/idp/SingleLogoutService.php' % idp,
                 }
 
-            saml_conf = Config()
-            saml_conf.load(config)
-            return saml_conf
+        saml_conf = Config()
+        saml_conf.load(config)
+        return saml_conf
 
     return _load_conf
