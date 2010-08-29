@@ -12,15 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import base64
 import re
 import urlparse
 
+from django.contrib.auth import SESSION_KEY
+from django.contrib.auth.models import User
 from django.test import TestCase
 
 from saml2.s_utils import decode_base64_and_inflate
 
 from djangosaml2 import views
+from djangosaml2.models import OutstandingQuery
 from djangosaml2.tests import conf
+from djangosaml2.tests.auth_response import auth_response
+
 
 class SSOTests(TestCase):
 
@@ -80,6 +86,7 @@ class SSOTests(TestCase):
                                                        'idp2.example.com',
                                                        'idp3.example.com'])
         response = self.client.get('/login/')
+        # a WAYF page should be displayed
         self.assertContains(response, 'Where are you from?', status_code=200)
         for i in range(1, 4):
             link = '/login/?idp=https://idp%d.example.com/simplesaml/saml2/idp/metadata.php&next=/'
@@ -106,3 +113,31 @@ class SSOTests(TestCase):
 <ns0:AuthnRequest AssertionConsumerServiceURL="http://sp.example.com/saml2/acs/" Destination="https://idp2.example.com/simplesaml/saml2/idp/SSOService.php" ID="XXXXXXXXXXXXXXXXXXXXXX" IssueInstant="2010-01-01T00:00:00Z" ProtocolBinding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" ProviderName="Test SP" Version="2.0" xmlns:ns0="urn:oasis:names:tc:SAML:2.0:protocol"><ns1:Issuer xmlns:ns1="urn:oasis:names:tc:SAML:2.0:assertion">http://sp.example.com/saml2/metadata/</ns1:Issuer><ns0:NameIDPolicy AllowCreate="true" Format="urn:oasis:names:tc:SAML:2.0:nameid-format:transient" /></ns0:AuthnRequest>"""
         xml = decode_base64_and_inflate(saml_request)
         self.assertSAMLRequestsEquals(expected_request, xml)
+
+    def test_assertion_consumer_service(self):
+        self.assertEquals(User.objects.count(), 0)
+
+        views._load_conf = conf.create_conf(sp_host='sp.example.com',
+                                            idp_hosts=['idp.example.com'])
+
+        config = views._load_conf()
+        session_id = "0123456789abcdef0123456789abcdef"
+        came_from = '/another-view/'
+        saml_response = auth_response({'uid': 'student'}, session_id, config)
+        OutstandingQuery.objects.create(session_id=session_id,
+                                        came_from=came_from)
+        response = self.client.post('/acs/', {
+                'SAMLResponse': base64.b64encode(str(saml_response)),
+                'RelayState': came_from,
+                })
+        self.assertEquals(response.status_code, 302)
+        location = response['Location']
+
+        url = urlparse.urlparse(location)
+        self.assertEquals(url.hostname, 'testserver')
+        self.assertEquals(url.path, came_from)
+
+        self.assertEquals(User.objects.count(), 1)
+        user_id = self.client.session[SESSION_KEY]
+        user = User.objects.get(id=user_id)
+        self.assertEquals(user.username, 'student')

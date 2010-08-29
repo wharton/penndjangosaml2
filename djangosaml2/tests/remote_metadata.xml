@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <md:EntitiesDescriptor xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata" xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
-  <md:EntityDescriptor entityID="https://localhost/simplesaml/saml2/idp/metadata.php">
+  <md:EntityDescriptor entityID="https://idp.example.com/simplesaml/saml2/idp/metadata.php">
     <md:IDPSSODescriptor protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol">
       <md:KeyDescriptor use="signing">
         <ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
@@ -16,14 +16,14 @@
           </ds:X509Data>
         </ds:KeyInfo>
       </md:KeyDescriptor>
-      <md:SingleLogoutService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://localhost/simplesaml/saml2/idp/SingleLogoutService.php"/>
+      <md:SingleLogoutService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://idp.example.com/simplesaml/saml2/idp/SingleLogoutService.php"/>
       <md:NameIDFormat>urn:oasis:names:tc:SAML:2.0:nameid-format:transient</md:NameIDFormat>
-      <md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://localhost/simplesaml/saml2/idp/SSOService.php"/>
+      <md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://idp.example.com/simplesaml/saml2/idp/SSOService.php"/>
     </md:IDPSSODescriptor>
     <md:Organization>
       <md:OrganizationName xml:lang="en">Lorenzo's test IdP</md:OrganizationName>
-      <md:OrganizationDisplayName xml:lang="en">localhost IdP</md:OrganizationDisplayName>
-      <md:OrganizationURL xml:lang="en">http://localhost/</md:OrganizationURL>
+      <md:OrganizationDisplayName xml:lang="en">idp.example.com IdP</md:OrganizationDisplayName>
+      <md:OrganizationURL xml:lang="en">http://idp.example.com/</md:OrganizationURL>
     </md:Organization>
     <md:ContactPerson contactType="technical">
       <md:SurName>Administrator</md:SurName>
