@@ -27,15 +27,16 @@ def create_conf(sp_host='sp.example.com', idp_hosts=['idp.example.com']):
             'attribute_map_dir': os.path.join(BASEDIR, 'attribute-maps'),
 
             'service': {
-                'sp' : {
+                'sp': {
                     'name': 'Test SP',
                     'endpoints': {
-                        'assertion_consumer_service': ['http://%s/saml2/acs/' % sp_host],
+                        'assertion_consumer_service': ['http://%s/saml2/acs/' %
+                                                       sp_host],
                         'logout_service': ['http://%s/saml2/ls/' % sp_host],
                         },
                     'required_attributes': ['uid'],
                     'optional_attributes': ['eduPersonAffiliation'],
-                    'idp': {} # this is filled later
+                    'idp': {}  # this is filled later
                     },
                 },
 
@@ -65,7 +66,8 @@ def create_conf(sp_host='sp.example.com', idp_hosts=['idp.example.com']):
             'organization': {
                 'name': [('Example Inc.', 'es'), ('Example Inc.', 'en')],
                 'display_name': ['Example'],
-                'url': [('http://www.example.com', 'es'), ('http://www.example.com', 'en')],
+                'url': [('http://www.example.com', 'es'),
+                        ('http://www.example.com', 'en')],
                 },
             'valid_for': 24,  # hours
             }

@@ -37,6 +37,7 @@ def auth_response(identity, in_response_to, sp_conf):
                                 destination=acs[0],
                                 status=success_status_factory())
     idp_conf = Config()
+    name_form = "urn:oasis:names:tc:SAML:2.0:attrname-format:uri"
     idp_conf.load({
             'entityid': idp_entity_id,
             'xmlsec_binary': sp_conf['xmlsec_binary'],
@@ -46,9 +47,9 @@ def auth_response(identity, in_response_to, sp_conf):
                     'endpoints': tuple(),
                     'policy':  {
                         'default': {
-                            "lifetime": {"minutes":15},
+                            "lifetime": {"minutes": 15},
                             "attribute_restrictions": None,
-                            "name_form": "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
+                            "name_form": name_form,
                             }
                         }
                     },
