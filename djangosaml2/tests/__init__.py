@@ -28,14 +28,18 @@ from djangosaml2.tests import conf
 from djangosaml2.tests.auth_response import auth_response
 
 
-class SSOTests(TestCase):
+class SAML2Tests(TestCase):
 
     urls = 'djangosaml2.urls'
 
     def assertSAMLRequestsEquals(self, xml1, xml2):
         def remove_variable_attributes(xml_string):
-            xml_string = re.sub(r' ID=".*" ', ' ', xml_string)
-            xml_string = re.sub(r' IssueInstant=".*" ', ' ', xml_string)
+            xml_string = re.sub(r' ID=".*?" ', ' ', xml_string)
+            xml_string = re.sub(r' IssueInstant=".*?" ', ' ', xml_string)
+            xml_string = re.sub(
+                r'<ns1:NameID xmlns:ns1="urn:oasis:names:tc:SAML:2.0:assertion">.*</ns1:NameID>',
+                '<ns1:NameID xmlns:ns1="urn:oasis:names:tc:SAML:2.0:assertion"></ns1:NameID>',
+                xml_string)
             return xml_string
 
         self.assertEquals(remove_variable_attributes(xml1),
@@ -121,6 +125,7 @@ class SSOTests(TestCase):
         views._load_conf = conf.create_conf(sp_host='sp.example.com',
                                             idp_hosts=['idp.example.com'])
 
+
         config = views._load_conf()
         session_id = "0123456789abcdef0123456789abcdef"
         came_from = '/another-view/'
@@ -158,3 +163,40 @@ class SSOTests(TestCase):
                 })
         self.assertEquals(response.status_code, 302)
         self.assertEquals(new_user.id, self.client.session[SESSION_KEY])
+
+    def test_logout(self):
+        views._load_conf = conf.create_conf(sp_host='sp.example.com',
+                                            idp_hosts=['idp.example.com'])
+
+        # do the login first
+        config = views._load_conf()
+        session_id = "0123456789abcdef0123456789abcdef"
+        came_from = '/another-view/'
+        saml_response = auth_response({'uid': 'student'}, session_id, config)
+        OutstandingQuery.objects.create(session_id=session_id,
+                                        came_from=came_from)
+        # this will create a user
+        response = self.client.post('/acs/', {
+                'SAMLResponse': base64.b64encode(str(saml_response)),
+                'RelayState': came_from,
+                })
+        self.assertEquals(response.status_code, 302)
+
+        # now the logout
+        response = self.client.get('/logout/')
+        self.assertEquals(response.status_code, 302)
+        location = response['Location']
+
+        url = urlparse.urlparse(location)
+        self.assertEquals(url.hostname, 'idp.example.com')
+        self.assertEquals(url.path,
+                          '/simplesaml/saml2/idp/SingleLogoutService.php')
+
+        params = urlparse.parse_qs(url.query)
+        self.assert_('SAMLRequest' in params)
+
+        saml_request = params['SAMLRequest'][0]
+        expected_request = """<?xml version='1.0' encoding='UTF-8'?>
+<ns0:LogoutRequest Destination="https://idp.example.com/simplesaml/saml2/idp/SingleLogoutService.php" ID="XXXXXXXXXXXXXXXXXXXXXX" IssueInstant="2010-01-01T00:00:00Z" Version="2.0" xmlns:ns0="urn:oasis:names:tc:SAML:2.0:protocol"><ns1:Issuer Format="urn:oasis:names:tc:SAML:2.0:nameid-format:entity" xmlns:ns1="urn:oasis:names:tc:SAML:2.0:assertion">http://sp.example.com/saml2/metadata/</ns1:Issuer><ns1:NameID xmlns:ns1="urn:oasis:names:tc:SAML:2.0:assertion">58bcc81ea14700f66aeb707a0eff1360</ns1:NameID></ns0:LogoutRequest>"""
+        xml = decode_base64_and_inflate(saml_request)
+        self.assertSAMLRequestsEquals(expected_request, xml)
