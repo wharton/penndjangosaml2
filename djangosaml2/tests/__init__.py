@@ -115,6 +115,7 @@ class SSOTests(TestCase):
         self.assertSAMLRequestsEquals(expected_request, xml)
 
     def test_assertion_consumer_service(self):
+        # there are no users in the database
         self.assertEquals(User.objects.count(), 0)
 
         views._load_conf = conf.create_conf(sp_host='sp.example.com',
@@ -126,6 +127,7 @@ class SSOTests(TestCase):
         saml_response = auth_response({'uid': 'student'}, session_id, config)
         OutstandingQuery.objects.create(session_id=session_id,
                                         came_from=came_from)
+        # this will create a user
         response = self.client.post('/acs/', {
                 'SAMLResponse': base64.b64encode(str(saml_response)),
                 'RelayState': came_from,
@@ -141,3 +143,18 @@ class SSOTests(TestCase):
         user_id = self.client.session[SESSION_KEY]
         user = User.objects.get(id=user_id)
         self.assertEquals(user.username, 'student')
+
+        # let's create another user and log in with that one
+        new_user = User.objects.create(username='teacher', password='not-used')
+
+        session_id = "11111111111111111111111111111111"
+        came_from = '/'
+        saml_response = auth_response({'uid': 'teacher'}, session_id, config)
+        OutstandingQuery.objects.create(session_id=session_id,
+                                        came_from=came_from)
+        response = self.client.post('/acs/', {
+                'SAMLResponse': base64.b64encode(str(saml_response)),
+                'RelayState': came_from,
+                })
+        self.assertEquals(response.status_code, 302)
+        self.assertEquals(new_user.id, self.client.session[SESSION_KEY])
