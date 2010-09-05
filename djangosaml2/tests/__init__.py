@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import datetime
 import base64
 import re
 import urlparse
@@ -20,7 +21,7 @@ from django.contrib.auth import SESSION_KEY
 from django.contrib.auth.models import User
 from django.test import TestCase
 
-from saml2.s_utils import decode_base64_and_inflate
+from saml2.s_utils import decode_base64_and_inflate, deflate_and_base64_encode
 
 from djangosaml2 import views
 from djangosaml2.models import OutstandingQuery
@@ -200,3 +201,47 @@ class SAML2Tests(TestCase):
 <ns0:LogoutRequest Destination="https://idp.example.com/simplesaml/saml2/idp/SingleLogoutService.php" ID="XXXXXXXXXXXXXXXXXXXXXX" IssueInstant="2010-01-01T00:00:00Z" Version="2.0" xmlns:ns0="urn:oasis:names:tc:SAML:2.0:protocol"><ns1:Issuer Format="urn:oasis:names:tc:SAML:2.0:nameid-format:entity" xmlns:ns1="urn:oasis:names:tc:SAML:2.0:assertion">http://sp.example.com/saml2/metadata/</ns1:Issuer><ns1:NameID xmlns:ns1="urn:oasis:names:tc:SAML:2.0:assertion">58bcc81ea14700f66aeb707a0eff1360</ns1:NameID></ns0:LogoutRequest>"""
         xml = decode_base64_and_inflate(saml_request)
         self.assertSAMLRequestsEquals(expected_request, xml)
+
+    def test_logout_service(self):
+        views._load_conf = conf.create_conf(sp_host='sp.example.com',
+                                            idp_hosts=['idp.example.com'])
+
+        # do the login first
+        config = views._load_conf()
+        session_id = "0123456789abcdef0123456789abcdef"
+        came_from = '/another-view/'
+        saml_response = auth_response({'uid': 'student'}, session_id, config)
+        OutstandingQuery.objects.create(session_id=session_id,
+                                        came_from=came_from)
+        # this will create a user
+        response = self.client.post('/acs/', {
+                'SAMLResponse': base64.b64encode(str(saml_response)),
+                'RelayState': came_from,
+                })
+        self.assertEquals(response.status_code, 302)
+
+        # now simulate a global logout process initiated by another SP
+        subject_id = self.client.session['SAML_SUBJECT_ID']
+        instant = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ')
+        saml_request = '<samlp:LogoutRequest xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" ID="_9961abbaae6d06d251226cb25e38bf8f468036e57e" Version="2.0" IssueInstant="%s" Destination="http://sp.example.com/saml2/ls/"><saml:Issuer>https://idp.example.com/simplesaml/saml2/idp/metadata.php</saml:Issuer><saml:NameID SPNameQualifier="http://sp.example.com/saml2/metadata/" Format="urn:oasis:names:tc:SAML:2.0:nameid-format:transient">%s</saml:NameID><samlp:SessionIndex>_1837687b7bc9faad85839dbeb319627889f3021757</samlp:SessionIndex></samlp:LogoutRequest>' % (
+            instant, subject_id)
+
+        response = self.client.get('/ls/', {
+                'SAMLRequest': deflate_and_base64_encode(saml_request),
+                })
+        self.assertEquals(response.status_code, 302)
+        location = response['Location']
+
+        url = urlparse.urlparse(location)
+        self.assertEquals(url.hostname, 'idp.example.com')
+        self.assertEquals(url.path,
+                          '/simplesaml/saml2/idp/SingleLogoutService.php')
+
+        params = urlparse.parse_qs(url.query)
+        self.assert_('SAMLResponse' in params)
+
+        saml_response = params['SAMLResponse'][0]
+        expected_response = """<?xml version='1.0' encoding='UTF-8'?>
+<ns0:LogoutResponse Destination="https://idp.example.com/simplesaml/saml2/idp/SingleLogoutService.php" ID="a140848e7ce2bce834d7264ecdde0151" InResponseTo="_9961abbaae6d06d251226cb25e38bf8f468036e57e" IssueInstant="2010-09-05T09:10:12Z" Version="2.0" xmlns:ns0="urn:oasis:names:tc:SAML:2.0:protocol"><ns1:Issuer Format="urn:oasis:names:tc:SAML:2.0:nameid-format:entity" xmlns:ns1="urn:oasis:names:tc:SAML:2.0:assertion">http://sp.example.com/saml2/metadata/</ns1:Issuer><ns0:Status><ns0:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Success" /></ns0:Status></ns0:LogoutResponse>"""
+        xml = decode_base64_and_inflate(saml_response)
+        self.assertSAMLRequestsEquals(expected_response, xml)
