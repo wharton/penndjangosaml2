@@ -245,3 +245,38 @@ class SAML2Tests(TestCase):
 <ns0:LogoutResponse Destination="https://idp.example.com/simplesaml/saml2/idp/SingleLogoutService.php" ID="a140848e7ce2bce834d7264ecdde0151" InResponseTo="_9961abbaae6d06d251226cb25e38bf8f468036e57e" IssueInstant="2010-09-05T09:10:12Z" Version="2.0" xmlns:ns0="urn:oasis:names:tc:SAML:2.0:protocol"><ns1:Issuer Format="urn:oasis:names:tc:SAML:2.0:nameid-format:entity" xmlns:ns1="urn:oasis:names:tc:SAML:2.0:assertion">http://sp.example.com/saml2/metadata/</ns1:Issuer><ns0:Status><ns0:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Success" /></ns0:Status></ns0:LogoutResponse>"""
         xml = decode_base64_and_inflate(saml_response)
         self.assertSAMLRequestsEquals(expected_response, xml)
+
+    def test_metadata(self):
+        views._load_conf = conf.create_conf(sp_host='sp.example.com',
+                                            idp_hosts=['idp.example.com'])
+
+        valid_until = datetime.datetime.utcnow() + datetime.timedelta(hours=24)
+        valid_until = valid_until.strftime("%Y-%m-%dT%H:%M:%SZ")
+        expected_metadata = """<?xml version='1.0' encoding='UTF-8'?>
+<ns0:EntitiesDescriptor validUntil="%s" xmlns:ns0="urn:oasis:names:tc:SAML:2.0:metadata"><ns0:EntityDescriptor entityID="http://sp.example.com/saml2/metadata/" validUntil="%s"><ns0:SPSSODescriptor AuthnRequestsSigned="false" WantAssertionsSigned="true" protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol"><ns0:KeyDescriptor><ns1:KeyInfo xmlns:ns1="http://www.w3.org/2000/09/xmldsig#"><ns1:X509Data><ns1:X509Certificate>MIIDPjCCAiYCCQCkHjPQlll+mzANBgkqhkiG9w0BAQUFADBhMQswCQYDVQQGEwJF
+UzEQMA4GA1UECBMHU2V2aWxsYTEbMBkGA1UEChMSWWFjbyBTaXN0ZW1hcyBTLkwu
+MRAwDgYDVQQHEwdTZXZpbGxhMREwDwYDVQQDEwh0aWNvdGljbzAeFw0wOTEyMDQx
+OTQzNTJaFw0xMDEyMDQxOTQzNTJaMGExCzAJBgNVBAYTAkVTMRAwDgYDVQQIEwdT
+ZXZpbGxhMRswGQYDVQQKExJZYWNvIFNpc3RlbWFzIFMuTC4xEDAOBgNVBAcTB1Nl
+dmlsbGExETAPBgNVBAMTCHRpY290aWNvMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8A
+MIIBCgKCAQEA7rMOMOaIZ/YYD5hYS6Hpjpovcu4k8gaIY+om9zCxLV5F8BLEfkxo
+Pk9IA3cRQNRxf7AXCFxEOH3nKy56AIi1gU7X6fCT30JBT8NQlYdgOVMLlR+tjy1b
+YV07tDa9U8gzjTyKQHgVwH0436+rmSPnacGj3fMwfySTMhtmrJmax0bIa8EB+gY1
+77DBtvf8dIZIXLlGMQFloZeUspvHOrgNoEA9xU4E9AanGnV9HeV37zv3mLDUOQLx
+4tk9sMQmylCpij7WZmcOV07DyJ/cEmnvHSalBTcyIgkcwlhmjtSgfCy6o5zuWxYd
+T9ia80SZbWzn8N6B0q+nq23+Oee9H0lvcwIDAQABMA0GCSqGSIb3DQEBBQUAA4IB
+AQCQBhKOqucJZAqGHx4ybDXNzpPethszonLNVg5deISSpWagy55KlGCi5laio/xq
+hHRx18eTzeCeLHQYvTQxw0IjZOezJ1X30DD9lEqPr6C+IrmZc6bn/pF76xsvdaRS
+gduNQPT1B25SV2HrEmbf8wafSlRARmBsyUHh860TqX7yFVjhYIAUF/El9rLca51j
+ljCIqqvT+klPdjQoZwODWPFHgute2oNRmoIcMjSnoy1+mxOC2Q/j7kcD8/etulg2
+XDxB3zD81gfdtT8VBFP+G4UrBa+5zFk6fT6U8a7ZqVsyH+rCXAdCyVlEC4Y5fZri
+ID4zT0FcZASGuthM56rRJJSx
+</ns1:X509Certificate></ns1:X509Data></ns1:KeyInfo></ns0:KeyDescriptor><ns0:AssertionConsumerService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="http://sp.example.com/saml2/acs/" index="1" /><ns0:AttributeConsumingService><ns0:ServiceName xml:lang="en">Test SP</ns0:ServiceName><ns0:RequestedAttribute FriendlyName="uid" Name="0.9.2342.19200300.100.1.1" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri" isRequired="true" /><ns0:RequestedAttribute FriendlyName="eduPersonAffiliation" Name="urn:oid:1.3.6.1.4.1.5923.1.1.1.1" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri" isRequired="false" /></ns0:AttributeConsumingService></ns0:SPSSODescriptor><ns0:Organization><ns0:OrganizationName xml:lang="es">Example Inc.</ns0:OrganizationName><ns0:OrganizationName xml:lang="en">Example Inc.</ns0:OrganizationName><ns0:OrganizationDisplayName>Example</ns0:OrganizationDisplayName><ns0:OrganizationURL xml:lang="es">http://www.example.com</ns0:OrganizationURL><ns0:OrganizationURL xml:lang="en">http://www.example.com</ns0:OrganizationURL></ns0:Organization><ns0:ContactPerson><ns0:Company>Example Inc.</ns0:Company></ns0:ContactPerson><ns0:ContactPerson><ns0:Company>Example Inc.</ns0:Company></ns0:ContactPerson></ns0:EntityDescriptor></ns0:EntitiesDescriptor>"""
+
+        expected_metadata = expected_metadata % (valid_until, valid_until)
+
+        response = self.client.get('/metadata/')
+        self.assertEquals(response['Content-type'], 'text/xml; charset=utf8')
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.content, expected_metadata)
+

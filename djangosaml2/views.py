@@ -162,4 +162,5 @@ def metadata(request):
                                  valid_for, name, ed_id, sign,
                                  SecurityContext(conf.xmlsec(),
                                                  conf['key_file']))
-    return HttpResponse(content=output, content_type="text/xml; charset=utf8")
+    return HttpResponse(content=str(output),
+                        content_type="text/xml; charset=utf8")
