@@ -65,10 +65,14 @@ def auth_response(identity, in_response_to, sp_conf):
     name_id = saml.NameID(format=saml.NAMEID_FORMAT_TRANSIENT,
                           text=sid())
 
+    authn_class = saml.AUTHN_PASSWORD
+    authn_authn = 'http://idp.example.com/login/'
     assertion = ast.construct(sp_entity_id,
                               in_response_to, name_id,
                               attribute_converters,
-                              policy, issuer=issuer)
+                              policy, issuer=issuer,
+                              authn_class=authn_class,
+                              authn_auth=authn_authn)
 
     sec = security_context(idp_conf)
 
