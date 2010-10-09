@@ -14,6 +14,7 @@
 
 import os.path
 
+import saml2
 from saml2.config import Config
 
 
@@ -75,7 +76,9 @@ def create_conf(sp_host='sp.example.com', idp_hosts=['idp.example.com']):
         for idp in idp_hosts:
             entity_id = 'https://%s/simplesaml/saml2/idp/metadata.php' % idp
             config['service']['sp']['idp'][entity_id] = {
-                'sso_service': 'https://%s/simplesaml/saml2/idp/SSOService.php' % idp,
+                'single_sign_on_service': {
+                    saml2.BINDING_HTTP_REDIRECT: 'https://%s/simplesaml/saml2/idp/SSOService.php' % idp,
+                    },
                 'logout_service': 'https://%s/simplesaml/saml2/idp/SingleLogoutService.php' % idp,
                 }
 
