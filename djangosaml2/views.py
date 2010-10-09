@@ -1,3 +1,4 @@
+
 # Copyright (C) 2010 Yaco Sistemas (http://www.yaco.es)
 # Copyright (C) 2009 Lorenzo Gil Sanchez
 #
@@ -56,15 +57,11 @@ def login(request):
                 'came_from': came_from,
                 }, context_instance=RequestContext(request))
 
-    if selected_idp is None:
-        # there should be only one IdP since no wayf service is needed
-        idps = conf.get_available_idps()
-        idp_sso = conf.sso_service(idps[0][0])
-    else:
-        idp_sso = conf.sso_service(selected_idp)
+    if selected_idp is not None:
+        selected_idp = conf.single_sign_on_service(selected_idp)
 
     client = Saml2Client(conf, persistent_cache=Cache('cache.saml'))
-    (session_id, result) = client.authenticate(location=idp_sso,
+    (session_id, result) = client.authenticate(location=selected_idp,
                                                relay_state=came_from)
 
     OutstandingQuery.objects.create(session_id=session_id,
