@@ -79,7 +79,9 @@ def create_conf(sp_host='sp.example.com', idp_hosts=['idp.example.com']):
                 'single_sign_on_service': {
                     saml2.BINDING_HTTP_REDIRECT: 'https://%s/simplesaml/saml2/idp/SSOService.php' % idp,
                     },
-                'logout_service': 'https://%s/simplesaml/saml2/idp/SingleLogoutService.php' % idp,
+                'logout_service': {
+                    saml2.BINDING_HTTP_POST: 'https://%s/simplesaml/saml2/idp/SingleLogoutService.php' % idp,
+                    },
                 }
 
         saml_conf = Config()
