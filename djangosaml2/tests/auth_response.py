@@ -29,12 +29,12 @@ def auth_response(identity, in_response_to, sp_conf):
     """Generates a fresh signed authentication response"""
     sp_entity_id = sp_conf['entityid']
     idp_entity_id = sp_conf['service']['sp']['idp'].keys()[0]
-    acs = sp_conf['service']['sp']['endpoints']['assertion_consumer_service']
+    acs = sp_conf.endpoint('sp', 'assertion_consumer_service')[0]
     attribute_converters = sp_conf.attribute_converters()
     issuer = saml.Issuer(text=idp_entity_id, format=saml.NAMEID_FORMAT_ENTITY)
     response = response_factory(issuer=issuer,
                                 in_response_to=in_response_to,
-                                destination=acs[0],
+                                destination=acs,
                                 status=success_status_factory())
     idp_conf = Config()
     name_form = "urn:oasis:names:tc:SAML:2.0:attrname-format:uri"
