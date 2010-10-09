@@ -128,7 +128,8 @@ class SAML2Tests(TestCase):
 
 
         config = views._load_conf()
-        session_id = "0123456789abcdef0123456789abcdef"
+        # session_id should start with a letter since it is a NCName
+        session_id = "a0123456789abcdef0123456789abcdef"
         came_from = '/another-view/'
         saml_response = auth_response({'uid': 'student'}, session_id, config)
         OutstandingQuery.objects.create(session_id=session_id,
@@ -153,7 +154,7 @@ class SAML2Tests(TestCase):
         # let's create another user and log in with that one
         new_user = User.objects.create(username='teacher', password='not-used')
 
-        session_id = "11111111111111111111111111111111"
+        session_id = "a1111111111111111111111111111111"
         came_from = '/'
         saml_response = auth_response({'uid': 'teacher'}, session_id, config)
         OutstandingQuery.objects.create(session_id=session_id,
