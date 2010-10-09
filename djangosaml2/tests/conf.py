@@ -53,21 +53,21 @@ def create_conf(sp_host='sp.example.com', idp_hosts=['idp.example.com']):
 
             # These fields are only used when generating the metadata
             'contact_person': [
-                {'givenname': 'Technical givenname',
-                 'surname': 'Technical surname',
+                {'given_name': 'Technical givenname',
+                 'sur_name': 'Technical surname',
                  'company': 'Example Inc.',
-                 'mail': 'technical@sp.example.com',
-                 'type': 'technical'},
-                {'givenname': 'Administrative givenname',
-                 'surname': 'Administrative surname',
+                 'email_address': 'technical@sp.example.com',
+                 'contact_type': 'technical'},
+                {'given_name': 'Administrative givenname',
+                 'sur_name': 'Administrative surname',
                  'company': 'Example Inc.',
-                 'mail': 'administrative@sp.example.ccom',
-                 'type': 'administrative'},
+                 'email_address': 'administrative@sp.example.ccom',
+                 'contact_type': 'administrative'},
                 ],
             'organization': {
-                'name': [('Example Inc.', 'es'), ('Example Inc.', 'en')],
-                'display_name': ['Example'],
-                'url': [('http://www.example.com', 'es'),
+                'name': [('Ejemplo S.A.', 'es'), ('Example Inc.', 'en')],
+                'display_name': [('Ejemplo', 'es'), ('Example', 'en')],
+                'url': [('http://www.example.es', 'es'),
                         ('http://www.example.com', 'en')],
                 },
             'valid_for': 24,  # hours
