@@ -128,7 +128,10 @@ def logout_service(request):
     we didn't initiate the process as a single logout
     request started by another SP.
     """
-    client = Saml2Client(_load_conf(), persistent_cache=Cache('cache.saml'))
+    conf = _load_conf()
+    state = shelve.open('state.saml', writeback=True)
+    client = Saml2Client(conf, state_cache=state,
+                         identity_cache=Cache('users.saml'))
     subject_id = request.session['SAML_SUBJECT_ID']
 
     if 'SAMLResponse' in request.GET:  # we started the logout
