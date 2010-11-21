@@ -27,7 +27,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 from saml2.cache import Cache
 from saml2.client import Saml2Client
-from saml2.config import Config
+from saml2.config import SPConfig
 from saml2.metadata import entity_descriptor, entities_descriptor
 from saml2.sigver import SecurityContext
 
@@ -36,7 +36,7 @@ from djangosaml2.models import OutstandingQuery
 
 def _load_conf():
     """Utility function to load the pysaml2 configuration"""
-    conf = Config()
+    conf = SPConfig()
     conf.load(copy.deepcopy(settings.SAML_CONFIG))
     return conf
 
@@ -60,7 +60,7 @@ def login(request):
     if selected_idp is not None:
         selected_idp = conf.single_sign_on_service(selected_idp)
 
-    client = Saml2Client(conf, persistent_cache=Cache('cache.saml'))
+    client = Saml2Client(conf, state_cache=Cache('cache.saml'))
     (session_id, result) = client.authenticate(location=selected_idp,
                                                relay_state=came_from)
 

@@ -15,7 +15,7 @@
 import os.path
 
 import saml2
-from saml2.config import Config
+from saml2.config import SPConfig
 
 
 def create_conf(sp_host='sp.example.com', idp_hosts=['idp.example.com']):
@@ -84,7 +84,7 @@ def create_conf(sp_host='sp.example.com', idp_hosts=['idp.example.com']):
                     },
                 }
 
-        saml_conf = Config()
+        saml_conf = SPConfig()
         saml_conf.load(config)
         return saml_conf
 
