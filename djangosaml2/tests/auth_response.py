@@ -15,7 +15,7 @@
 import os
 
 from saml2 import saml, class_name
-from saml2.config import Config
+from saml2.config import IDPConfig
 from saml2.assertion import Assertion
 from saml2.s_utils import response_factory, sid
 from saml2.s_utils import success_status_factory
@@ -36,7 +36,7 @@ def auth_response(identity, in_response_to, sp_conf):
                                 in_response_to=in_response_to,
                                 destination=acs,
                                 status=success_status_factory())
-    idp_conf = Config()
+    idp_conf = IDPConfig()
     name_form = "urn:oasis:names:tc:SAML:2.0:attrname-format:uri"
     idp_conf.load({
             'entityid': idp_entity_id,

@@ -39,8 +39,8 @@ class SAML2Tests(TestCase):
             xml_string = re.sub(r' ID=".*?" ', ' ', xml_string)
             xml_string = re.sub(r' IssueInstant=".*?" ', ' ', xml_string)
             xml_string = re.sub(
-                r'<ns1:NameID xmlns:ns1="urn:oasis:names:tc:SAML:2.0:assertion">.*</ns1:NameID>',
-                '<ns1:NameID xmlns:ns1="urn:oasis:names:tc:SAML:2.0:assertion"></ns1:NameID>',
+                r'<ns1:NameID>.*</ns1:NameID>',
+                '<ns1:NameID></ns1:NameID>',
                 xml_string)
             return xml_string
 
@@ -200,7 +200,7 @@ class SAML2Tests(TestCase):
 
         saml_request = params['SAMLRequest'][0]
         expected_request = """<?xml version='1.0' encoding='UTF-8'?>
-<ns0:LogoutRequest Destination="https://idp.example.com/simplesaml/saml2/idp/SingleLogoutService.php" ID="XXXXXXXXXXXXXXXXXXXXXX" IssueInstant="2010-01-01T00:00:00Z" Version="2.0" xmlns:ns0="urn:oasis:names:tc:SAML:2.0:protocol"><ns1:Issuer Format="urn:oasis:names:tc:SAML:2.0:nameid-format:entity" xmlns:ns1="urn:oasis:names:tc:SAML:2.0:assertion">http://sp.example.com/saml2/metadata/</ns1:Issuer><ns1:NameID xmlns:ns1="urn:oasis:names:tc:SAML:2.0:assertion">58bcc81ea14700f66aeb707a0eff1360</ns1:NameID></ns0:LogoutRequest>"""
+<ns0:LogoutRequest xmlns:ns0="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:ns1="urn:oasis:names:tc:SAML:2.0:assertion" Destination="https://idp.example.com/simplesaml/saml2/idp/SingleLogoutService.php" ID="XXXXXXXXXXXXXXXXXXXXXX" IssueInstant="2010-01-01T00:00:00Z" Version="2.0"><ns1:Issuer Format="urn:oasis:names:tc:SAML:2.0:nameid-format:entity">http://sp.example.com/saml2/metadata/</ns1:Issuer><ns1:NameID>58bcc81ea14700f66aeb707a0eff1360</ns1:NameID></ns0:LogoutRequest>"""
         xml = decode_base64_and_inflate(saml_request)
         self.assertSAMLRequestsEquals(expected_request, xml)
 

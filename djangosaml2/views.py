@@ -15,6 +15,7 @@
 # limitations under the License.
 
 import copy
+import shelve
 
 from django.conf import settings
 from django.contrib import auth
@@ -60,7 +61,7 @@ def login(request):
     if selected_idp is not None:
         selected_idp = conf.single_sign_on_service(selected_idp)
 
-    client = Saml2Client(conf, state_cache=Cache('cache.saml'))
+    client = Saml2Client(conf, identity_cache=Cache('users.saml'))
     (session_id, result) = client.authenticate(location=selected_idp,
                                                relay_state=came_from)
 
@@ -83,7 +84,7 @@ def assertion_consumer_service(request):
     """
     conf = _load_conf()
     post = {'SAMLResponse': request.POST['SAMLResponse']}
-    client = Saml2Client(conf, persistent_cache=Cache('cache.saml'))
+    client = Saml2Client(conf, identity_cache=Cache('users.saml'))
     response = client.response(post, conf['entityid'],
                                OutstandingQuery.objects.as_dict())
     session_id = response.session_id()
@@ -107,11 +108,14 @@ def logout(request):
     This view initiates the SAML2 Logout request
     using the pysaml2 library to create the LogoutRequest.
     """
-    client = Saml2Client(_load_conf(), persistent_cache=Cache('cache.saml'))
+    state = shelve.open('state.saml', writeback=True)
+    client = Saml2Client(_load_conf(), state_cache=state,
+                         identity_cache=Cache('users.saml'))
     subject_id = request.session['SAML_SUBJECT_ID']
-    result = client.global_logout(subject_id)
-
-    return HttpResponseRedirect(result[0])
+    session_id, code, head, body = client.global_logout(subject_id)
+    headers = dict(head)
+    state.sync()
+    return HttpResponseRedirect(headers['Location'])
 
 
 def logout_service(request):
