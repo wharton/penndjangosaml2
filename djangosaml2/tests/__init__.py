@@ -34,6 +34,7 @@ class SAML2Tests(TestCase):
     urls = 'djangosaml2.urls'
 
     def assertSAMLRequestsEquals(self, xml1, xml2):
+
         def remove_variable_attributes(xml_string):
             xml_string = re.sub(r' ID=".*?" ', ' ', xml_string)
             xml_string = re.sub(r' IssueInstant=".*?" ', ' ', xml_string)
@@ -280,4 +281,3 @@ ID4zT0FcZASGuthM56rRJJSx
         self.assertEquals(response['Content-type'], 'text/xml; charset=utf8')
         self.assertEquals(response.status_code, 200)
         self.assertEquals(response.content, expected_metadata)
-
