@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from django.conf.urls.defaults import patterns
+from django.conf.urls.defaults import patterns, handler500
 
 urlpatterns = patterns(
     'djangosaml2.views',
@@ -23,3 +23,5 @@ urlpatterns = patterns(
     (r'^ls/$', 'logout_service'),
     (r'^metadata/$', 'metadata'),
 )
+
+handler500 = handler500
