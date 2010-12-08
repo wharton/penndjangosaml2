@@ -31,9 +31,14 @@ def create_conf(sp_host='sp.example.com', idp_hosts=['idp.example.com']):
                 'sp': {
                     'name': 'Test SP',
                     'endpoints': {
-                        'assertion_consumer_service': ['http://%s/saml2/acs/' %
-                                                       sp_host],
-                        'logout_service': ['http://%s/saml2/ls/' % sp_host],
+                        'assertion_consumer_service': [
+                            ('http://%s/saml2/acs/' % sp_host,
+                             saml2.BINDING_HTTP_POST),
+                            ],
+                        'single_logout_service': [
+                            ('http://%s/saml2/ls/' % sp_host,
+                             saml2.BINDING_HTTP_REDIRECT),
+                            ],
                         },
                     'required_attributes': ['uid'],
                     'optional_attributes': ['eduPersonAffiliation'],

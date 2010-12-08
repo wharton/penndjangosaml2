@@ -26,6 +26,7 @@ from django.shortcuts import render_to_response
 from django.template import RequestContext
 from django.views.decorators.csrf import csrf_exempt
 
+from saml2 import BINDING_HTTP_REDIRECT
 from saml2.cache import Cache
 from saml2.client import Saml2Client
 from saml2.config import SPConfig
@@ -135,7 +136,9 @@ def logout_service(request):
     subject_id = request.session['SAML_SUBJECT_ID']
 
     if 'SAMLResponse' in request.GET:  # we started the logout
-        if client.logout_response(request.GET, subject_id):
+        response = client.logout_response(request.GET['SAMLResponse'],
+                                          binding=BINDING_HTTP_REDIRECT)
+        if response and response[1] == '200 Ok':
             return django_logout(request)
         else:
             return HttpResponse('Error during logout')
