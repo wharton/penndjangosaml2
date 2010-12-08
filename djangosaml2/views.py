@@ -141,11 +141,15 @@ def logout_service(request):
             return HttpResponse('Error during logout')
 
     elif 'SAMLRequest' in request.GET:  # logout started by the IdP
-        url, success = client.logout_request(request.GET, subject_id)
+        response, success = client.logout_request(request.GET, subject_id)
         if success:
             auth.logout(request)
+            assert response[0][0] == 'Location'
+            url = response[0][1]
             return HttpResponseRedirect(url)
-        elif url is not None:
+        elif response is not None:
+            assert response[0][0] == 'Location'
+            url = response[0][1]
             return HttpResponseRedirect(url)
         else:
             return HttpResponse('Error during logout')
