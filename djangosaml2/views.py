@@ -24,7 +24,11 @@ from django.contrib.auth.views import logout as django_logout
 from django.http import Http404, HttpResponse, HttpResponseRedirect
 from django.shortcuts import render_to_response
 from django.template import RequestContext
-from django.views.decorators.csrf import csrf_exempt
+try:
+    from django.views.decorators.csrf import csrf_exempt
+except ImportError:
+    def csrf_exempt(view_func):
+        return view_func
 
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2.cache import Cache
