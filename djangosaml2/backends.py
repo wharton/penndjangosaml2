@@ -27,36 +27,56 @@ class Saml2Backend(ModelBackend):
         if not 'ava' in session_info:
             return None
 
-        ava = session_info['ava']
-        username = ava[settings.SAML_USERNAME_ATTRIBUTE][0]
-
-        modified = False
+        attributes = session_info['ava']
         try:
-            user = User.objects.get(username=username)
-        except User.DoesNotExist:
-            user = User.objects.create(username=username, password='')
-            modified = True
+            saml_user = attributes[settings.SAML_USERNAME_ATTRIBUTE][0]
+        except KeyError:
+            return None
 
-        modified = modified or self._update_user_attributes(user, ava)
+        user = None
+        username = self.clean_username(saml_user)
 
-        if modified:
-            user.save()
+        # Note that this could be accomplished in one try-except clause, but
+        # instead we use get_or_create when creating unknown users since it has
+        # built-in safeguards for multiple threads.
+        if getattr(settings, 'SAML_CREATE_UNKNOWN_USER', True):
+            user, created = User.objects.get_or_create(username=username)
+            if created:
+                user = self.configure_user(user, attributes)
+            else:
+                user = self.update_user(user, attributes)
+        else:
+            try:
+                user = User.objects.get(username=username)
+                user = self.update_user(user, attributes)
+            except User.DoesNotExist:
+                pass
 
         return user
 
-    def _update_user_attributes(self, user, attributes):
-        """Update the Django user attributes.
+    def clean_username(self, username):
+        """Performs any cleaning on the "username" prior to using it to get or
+        create the user object.  Returns the cleaned username.
+
+        By default, returns the username unchanged.
+        """
+        return username
+
+    def configure_user(self, user, attributes):
+        """Configures a user after creation and returns the updated user.
+
+        By default, returns the user unmodified.
+        """
+        return user
+
+    def update_user(self, user, attributes):
+        """Update a user with a set of attributes and returns the updated user.
 
         By default it uses a mapping defined in the settings constant
         SAML_ATTRIBUTE_MAPPING.
-
-        This method should not save the user object. The caller will
-        do it the return value is True.
-
-        This returns True if the user was modified or False otherwise.
         """
         if not hasattr(settings, 'SAML_ATTRIBUTE_MAPPING'):
-            return False
+            return user
 
         modified = False
         for saml_attr, django_attr in settings.SAML_ATTRIBUTE_MAPPING.items():
@@ -67,4 +87,7 @@ class Saml2Backend(ModelBackend):
                 # the saml attribute is missing
                 pass
 
-        return modified
+        if modified:
+            user.save()
+
+        return user
