@@ -34,7 +34,7 @@ class Saml2Backend(ModelBackend):
         try:
             user = User.objects.get(username=username)
         except User.DoesNotExist:
-            user = User(username=username, password='')
+            user = User.objects.create(username=username, password='')
             modified = True
 
         modified = modified or self._update_user_attributes(user, ava)
@@ -45,4 +45,26 @@ class Saml2Backend(ModelBackend):
         return user
 
     def _update_user_attributes(self, user, attributes):
-        """TODO"""
+        """Update the Django user attributes.
+
+        By default it uses a mapping defined in the settings constant
+        SAML_ATTRIBUTE_MAPPING.
+
+        This method should not save the user object. The caller will
+        do it the return value is True.
+
+        This returns True if the user was modified or False otherwise.
+        """
+        if not hasattr(settings, 'SAML_ATTRIBUTE_MAPPING'):
+            return False
+
+        modified = False
+        for saml_attr, django_attr in settings.SAML_ATTRIBUTE_MAPPING.items():
+            try:
+                setattr(user, django_attr, attributes[saml_attr][0])
+                modified = True
+            except KeyError:
+                # the saml attribute is missing
+                pass
+
+        return modified
