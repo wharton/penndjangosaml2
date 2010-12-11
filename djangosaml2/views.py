@@ -27,6 +27,7 @@ from django.template import RequestContext
 try:
     from django.views.decorators.csrf import csrf_exempt
 except ImportError:
+    # Django 1.0 compatibility
     def csrf_exempt(view_func):
         return view_func
 
