@@ -66,15 +66,19 @@ def login(request):
     if selected_idp is not None:
         selected_idp = conf.single_sign_on_service(selected_idp)
 
-    client = Saml2Client(conf, identity_cache=Cache('users.saml'))
-    (session_id, result) = client.authenticate(location=selected_idp,
-                                               relay_state=came_from)
+    client = Saml2Client(conf)
+    (session_id, result) = client.authenticate(
+        location=selected_idp, relay_state=came_from,
+        binding=BINDING_HTTP_REDIRECT,
+        )
+    assert len(result) == 2
+    assert result[0] == 'Location'
+    location = result[1]
 
     OutstandingQuery.objects.create(session_id=session_id,
                                     came_from=came_from)
 
-    redirect_url = result[1]
-    return HttpResponseRedirect(redirect_url)
+    return HttpResponseRedirect(location)
 
 
 @csrf_exempt
