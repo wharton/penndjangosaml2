@@ -1,4 +1,3 @@
-
 # Copyright (C) 2010 Yaco Sistemas (http://www.yaco.es)
 # Copyright (C) 2009 Lorenzo Gil Sanchez
 #
@@ -38,7 +37,7 @@ from saml2.config import SPConfig
 from saml2.metadata import entity_descriptor, entities_descriptor
 from saml2.sigver import SecurityContext
 
-from djangosaml2.models import OutstandingQuery
+from djangosaml2.cache import OutstandingQueriesCache
 
 
 def _load_conf():
@@ -76,8 +75,8 @@ def login(request):
     assert result[0] == 'Location'
     location = result[1]
 
-    OutstandingQuery.objects.create(session_id=session_id,
-                                    came_from=came_from)
+    oq_cache = OutstandingQueriesCache(request.session)
+    oq_cache.add_query(session_id, came_from)
 
     return HttpResponseRedirect(location)
 
@@ -95,18 +94,25 @@ def assertion_consumer_service(request):
     conf = _load_conf()
     post = {'SAMLResponse': request.POST['SAMLResponse']}
     client = Saml2Client(conf, identity_cache=Cache('users.saml'))
-    response = client.response(post, conf['entityid'],
-                               OutstandingQuery.objects.as_dict())
-    session_id = response.session_id()
-    session_info = response.session_info()
-    OutstandingQuery.objects.clear_session(session_id)
 
+    oq_cache = OutstandingQueriesCache(request.session)
+    outstanding_queries = oq_cache.get_queries()
+
+    # process the authentication response
+    response = client.response(post, conf['entityid'], outstanding_queries)
+    session_id = response.session_id()
+    oq_cache.del_query(session_id)
+
+    # authenticate the remote user
+    session_info = response.session_info()
     user = auth.authenticate(session_info=session_info)
     if user is None:
         return HttpResponse("user not valid")
 
     auth.login(request, user)
     request.session['SAML_SUBJECT_ID'] = session_info['name_id']
+
+    # redirect the user to the view where he came from
     relay_state = request.POST.get('RelayState', '/')
     return HttpResponseRedirect(relay_state)
 

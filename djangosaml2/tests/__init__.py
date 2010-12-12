@@ -17,6 +17,7 @@ import base64
 import re
 import urlparse
 
+from django.conf import settings
 from django.contrib.auth import SESSION_KEY
 from django.contrib.auth.models import User
 from django.test import TestCase
@@ -24,7 +25,7 @@ from django.test import TestCase
 from saml2.s_utils import decode_base64_and_inflate, deflate_and_base64_encode
 
 from djangosaml2 import views
-from djangosaml2.models import OutstandingQuery
+from djangosaml2.cache import OutstandingQueriesCache
 from djangosaml2.tests import conf
 from djangosaml2.tests.auth_response import auth_response
 
@@ -46,6 +47,16 @@ class SAML2Tests(TestCase):
 
         self.assertEquals(remove_variable_attributes(xml1),
                           remove_variable_attributes(xml2))
+
+    def init_cookies(self):
+        self.client.cookies[settings.SESSION_COOKIE_NAME] = 'testing'
+
+    def add_outstanding_query(self, session_id, came_from):
+        session = self.client.session
+        oq_cache = OutstandingQueriesCache(session)
+        oq_cache.add_query(session_id, came_from)
+        session.save()
+        self.client.cookies[settings.SESSION_COOKIE_NAME] = session.session_key
 
     def test_login_one_idp(self):
         # monkey patch SAML configuration
@@ -127,14 +138,14 @@ class SAML2Tests(TestCase):
         views._load_conf = conf.create_conf(sp_host='sp.example.com',
                                             idp_hosts=['idp.example.com'])
 
-
         config = views._load_conf()
         # session_id should start with a letter since it is a NCName
         session_id = "a0123456789abcdef0123456789abcdef"
         came_from = '/another-view/'
         saml_response = auth_response({'uid': 'student'}, session_id, config)
-        OutstandingQuery.objects.create(session_id=session_id,
-                                        came_from=came_from)
+        self.init_cookies()
+        self.add_outstanding_query(session_id, came_from)
+
         # this will create a user
         response = self.client.post('/acs/', {
                 'SAMLResponse': base64.b64encode(str(saml_response)),
@@ -158,8 +169,7 @@ class SAML2Tests(TestCase):
         session_id = "a1111111111111111111111111111111"
         came_from = '/'
         saml_response = auth_response({'uid': 'teacher'}, session_id, config)
-        OutstandingQuery.objects.create(session_id=session_id,
-                                        came_from=came_from)
+        self.add_outstanding_query(session_id, came_from)
         response = self.client.post('/acs/', {
                 'SAMLResponse': base64.b64encode(str(saml_response)),
                 'RelayState': came_from,
@@ -167,17 +177,15 @@ class SAML2Tests(TestCase):
         self.assertEquals(response.status_code, 302)
         self.assertEquals(new_user.id, self.client.session[SESSION_KEY])
 
-    def test_logout(self):
-        views._load_conf = conf.create_conf(sp_host='sp.example.com',
-                                            idp_hosts=['idp.example.com'])
-
-        # do the login first
+    def do_login(self):
+        """Auxiliary method used in several tests (mainly logout tests)"""
         config = views._load_conf()
         session_id = "a0123456789abcdef0123456789abcdef"
         came_from = '/another-view/'
         saml_response = auth_response({'uid': 'student'}, session_id, config)
-        OutstandingQuery.objects.create(session_id=session_id,
-                                        came_from=came_from)
+        self.init_cookies()
+        self.add_outstanding_query(session_id, came_from)
+
         # this will create a user
         response = self.client.post('/acs/', {
                 'SAMLResponse': base64.b64encode(str(saml_response)),
@@ -185,7 +193,12 @@ class SAML2Tests(TestCase):
                 })
         self.assertEquals(response.status_code, 302)
 
-        # now the logout
+    def test_logout(self):
+        views._load_conf = conf.create_conf(sp_host='sp.example.com',
+                                            idp_hosts=['idp.example.com'])
+
+        self.do_login()
+
         response = self.client.get('/logout/')
         self.assertEquals(response.status_code, 302)
         location = response['Location']
@@ -208,21 +221,8 @@ class SAML2Tests(TestCase):
         views._load_conf = conf.create_conf(sp_host='sp.example.com',
                                             idp_hosts=['idp.example.com'])
 
-        # do the login first
-        config = views._load_conf()
-        session_id = "a0123456789abcdef0123456789abcdef"
-        came_from = '/another-view/'
-        saml_response = auth_response({'uid': 'student'}, session_id, config)
-        OutstandingQuery.objects.create(session_id=session_id,
-                                        came_from=came_from)
-        # this will create a user
-        response = self.client.post('/acs/', {
-                'SAMLResponse': base64.b64encode(str(saml_response)),
-                'RelayState': came_from,
-                })
-        self.assertEquals(response.status_code, 302)
+        self.do_login()
 
-        # now the logout
         response = self.client.get('/logout/')
         self.assertEquals(response.status_code, 302)
         location = response['Location']
@@ -260,19 +260,7 @@ class SAML2Tests(TestCase):
         views._load_conf = conf.create_conf(sp_host='sp.example.com',
                                             idp_hosts=['idp.example.com'])
 
-        # do the login first
-        config = views._load_conf()
-        session_id = "a0123456789abcdef0123456789abcdef"
-        came_from = '/another-view/'
-        saml_response = auth_response({'uid': 'student'}, session_id, config)
-        OutstandingQuery.objects.create(session_id=session_id,
-                                        came_from=came_from)
-        # this will create a user
-        response = self.client.post('/acs/', {
-                'SAMLResponse': base64.b64encode(str(saml_response)),
-                'RelayState': came_from,
-                })
-        self.assertEquals(response.status_code, 302)
+        self.do_login()
 
         # now simulate a global logout process initiated by another SP
         subject_id = self.client.session['SAML_SUBJECT_ID']

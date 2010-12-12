@@ -13,33 +13,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from django.db import models
-
-
-class OutstandingQueryManager(models.Manager):
-
-    def as_dict(self):
-        return dict([(oq.session_id, oq.came_from) for oq in self.all()])
-
-    def clear_session(self, session_id):
-        if session_id:
-            try:
-                oq = self.get(session_id=session_id)
-                oq.delete()
-            except OutstandingQuery.DoesNotExist:
-                pass
-
-
-class OutstandingQuery(models.Model):
-    """Queries that were made to an IdP and are not yet replied"""
-
-    session_id = models.CharField("PySAML2 session",
-                                  max_length=100, blank=False)
-    came_from = models.CharField("PySAML2 rely state",
-                                 max_length=200, blank=False)
-    creation_time = models.DateTimeField(auto_now=True)
-
-    objects = OutstandingQueryManager()
-
-    def __unicode__(self):
-        return u'%s - %s' % (self.session_id, self.come_from)
+# nothing here, just an empty file to avoid Django complaints
