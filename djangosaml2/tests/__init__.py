@@ -54,7 +54,7 @@ class SAML2Tests(TestCase):
     def add_outstanding_query(self, session_id, came_from):
         session = self.client.session
         oq_cache = OutstandingQueriesCache(session)
-        oq_cache.add_query(session_id, came_from)
+        oq_cache.set(session_id, came_from)
         session.save()
         self.client.cookies[settings.SESSION_COOKIE_NAME] = session.session_key
 

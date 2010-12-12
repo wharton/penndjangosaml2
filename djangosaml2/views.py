@@ -31,13 +31,12 @@ except ImportError:
         return view_func
 
 from saml2 import BINDING_HTTP_REDIRECT
-from saml2.cache import Cache
 from saml2.client import Saml2Client
 from saml2.config import SPConfig
 from saml2.metadata import entity_descriptor, entities_descriptor
 from saml2.sigver import SecurityContext
 
-from djangosaml2.cache import OutstandingQueriesCache
+from djangosaml2.cache import IdentityCache, OutstandingQueriesCache
 
 
 def _load_conf():
@@ -76,7 +75,7 @@ def login(request):
     location = result[1]
 
     oq_cache = OutstandingQueriesCache(request.session)
-    oq_cache.add_query(session_id, came_from)
+    oq_cache.set(session_id, came_from)
 
     return HttpResponseRedirect(location)
 
@@ -93,15 +92,18 @@ def assertion_consumer_service(request):
     """
     conf = _load_conf()
     post = {'SAMLResponse': request.POST['SAMLResponse']}
-    client = Saml2Client(conf, identity_cache=Cache('users.saml'))
+    client = Saml2Client(conf, identity_cache=IdentityCache(request.session))
 
     oq_cache = OutstandingQueriesCache(request.session)
-    outstanding_queries = oq_cache.get_queries()
+    outstanding_queries = oq_cache.outstanding_queries()
 
     # process the authentication response
     response = client.response(post, conf['entityid'], outstanding_queries)
+    if response is None:
+        return HttpResponse("SAML response has errors. Please check the logs")
+
     session_id = response.session_id()
-    oq_cache.del_query(session_id)
+    oq_cache.delete(session_id)
 
     # authenticate the remote user
     session_info = response.session_info()
@@ -126,7 +128,7 @@ def logout(request):
     """
     state = shelve.open('state.saml', writeback=True)
     client = Saml2Client(_load_conf(), state_cache=state,
-                         identity_cache=Cache('users.saml'))
+                         identity_cache=IdentityCache(request.session))
     subject_id = request.session['SAML_SUBJECT_ID']
     session_id, code, head, body = client.global_logout(subject_id)
     headers = dict(head)
@@ -147,7 +149,7 @@ def logout_service(request):
     conf = _load_conf()
     state = shelve.open('state.saml', writeback=True)
     client = Saml2Client(conf, state_cache=state,
-                         identity_cache=Cache('users.saml'))
+                         identity_cache=IdentityCache(request.session))
     subject_id = request.session['SAML_SUBJECT_ID']
 
     if 'SAMLResponse' in request.GET:  # we started the logout

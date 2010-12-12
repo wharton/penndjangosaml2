@@ -12,33 +12,65 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-SAML2_SESSION_PREFIX = '_saml2'
+from saml2.cache import Cache
+
+
+class DjangoSessionCacheAdapter(dict):
+    """A cache of things that are stored in the Django Session"""
+
+    key_prefix = '_saml2'
+
+    def __init__(self, django_session, key_suffix):
+        self.session = django_session
+        self.key = self.key_prefix + key_suffix
+
+        super(DjangoSessionCacheAdapter, self).__init__(self._get_objects())
+
+    def _get_objects(self):
+        return self.session.get(self.key, {})
+
+    def _set_objects(self, objects):
+        self.session[self.key] = objects
+
+    def sync(self):
+        objs = {}
+        objs.update(self)
+        self._set_objects(objs)
 
 
 class OutstandingQueriesCache(object):
-    """Class that manages the queries that have been sent to the IdP
-    and have not been replied yet.
-
-    This implementation store the queries in the Django session.
+    """Handles the queries that have been sent to the IdP and have not
+    been replied yet.
     """
 
     def __init__(self, django_session):
-        self.session = django_session
-        self.session_key = SAML2_SESSION_PREFIX + '_outstanding_queries'
+        self._db = DjangoSessionCacheAdapter(django_session,
+                                             '_outstanding_queries')
 
-    def get_queries(self):
-        return self.session.get(self.session_key, {})
+    def outstanding_queries(self):
+        return self._db._get_objects()
 
-    def set_queries(self, outstanding_queries):
-        self.session[self.session_key] = outstanding_queries
+    def set(self, saml2_session_id, came_from):
+        self._db[saml2_session_id] = came_from
+        self._db.sync()
 
-    def add_query(self, saml2_session_id, came_from):
-        outstanding_queries = self.get_queries()
-        outstanding_queries[saml2_session_id] = came_from
-        self.set_queries(outstanding_queries)
+    def delete(self, saml2_session_id):
+        if saml2_session_id in self._db:
+            del self._db[saml2_session_id]
+            self._db.sync()
 
-    def del_query(self, saml2_session_id):
-        outstanding_queries = self.get_queries()
-        if saml2_session_id in outstanding_queries:
-            del outstanding_queries[saml2_session_id]
-            self.set_queries(outstanding_queries)
+
+class IdentityCache(Cache):
+    """Handles information about the users that have been succesfully
+    logged in.
+
+    The current implementation stores this information in the Django session.
+    """
+
+    def __init__(self, django_session):
+        self._db = DjangoSessionCacheAdapter(django_session, '_identities')
+        self._sync = True
+
+    def delete(self, subject_id):
+        super(IdentityCache, self).delete(subject_id)
+        self._db.sync()
