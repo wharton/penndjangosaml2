@@ -14,7 +14,6 @@
 # limitations under the License.
 
 import copy
-import shelve
 
 from django.conf import settings
 from django.contrib import auth
@@ -37,6 +36,7 @@ from saml2.metadata import entity_descriptor, entities_descriptor
 from saml2.sigver import SecurityContext
 
 from djangosaml2.cache import IdentityCache, OutstandingQueriesCache
+from djangosaml2.cache import StateCache
 
 
 def _load_conf():
@@ -44,6 +44,14 @@ def _load_conf():
     conf = SPConfig()
     conf.load(copy.deepcopy(settings.SAML_CONFIG))
     return conf
+
+
+def _set_subject_id(session, subject_id):
+    session['_saml2_subject_id'] = subject_id
+
+
+def _get_subject_id(session):
+    return session['_saml2_subject_id']
 
 
 def login(request):
@@ -112,7 +120,7 @@ def assertion_consumer_service(request):
         return HttpResponse("user not valid")
 
     auth.login(request, user)
-    request.session['SAML_SUBJECT_ID'] = session_info['name_id']
+    _set_subject_id(request.session, session_info['name_id'])
 
     # redirect the user to the view where he came from
     relay_state = request.POST.get('RelayState', '/')
@@ -126,10 +134,10 @@ def logout(request):
     This view initiates the SAML2 Logout request
     using the pysaml2 library to create the LogoutRequest.
     """
-    state = shelve.open('state.saml', writeback=True)
+    state = StateCache(request.session)
     client = Saml2Client(_load_conf(), state_cache=state,
                          identity_cache=IdentityCache(request.session))
-    subject_id = request.session['SAML_SUBJECT_ID']
+    subject_id = _get_subject_id(request.session)
     session_id, code, head, body = client.global_logout(subject_id)
     headers = dict(head)
     state.sync()
@@ -147,21 +155,23 @@ def logout_service(request):
     request started by another SP.
     """
     conf = _load_conf()
-    state = shelve.open('state.saml', writeback=True)
+    state = StateCache(request.session)
     client = Saml2Client(conf, state_cache=state,
                          identity_cache=IdentityCache(request.session))
-    subject_id = request.session['SAML_SUBJECT_ID']
 
     if 'SAMLResponse' in request.GET:  # we started the logout
         response = client.logout_response(request.GET['SAMLResponse'],
                                           binding=BINDING_HTTP_REDIRECT)
+        state.sync()
         if response and response[1] == '200 Ok':
             return django_logout(request)
         else:
             return HttpResponse('Error during logout')
 
     elif 'SAMLRequest' in request.GET:  # logout started by the IdP
+        subject_id = _get_subject_id(request.session)
         response, success = client.logout_request(request.GET, subject_id)
+        state.sync()
         if success:
             auth.logout(request)
             assert response[0][0] == 'Location'

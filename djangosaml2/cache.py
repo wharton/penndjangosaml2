@@ -64,6 +64,9 @@ class IdentityCache(Cache):
     """Handles information about the users that have been succesfully
     logged in.
 
+    This information is useful because when the user logs out we must
+    know where does he come from in order to notify such IdP/AA.
+
     The current implementation stores this information in the Django session.
     """
 
@@ -73,4 +76,16 @@ class IdentityCache(Cache):
 
     def delete(self, subject_id):
         super(IdentityCache, self).delete(subject_id)
+        # saml2.Cache doesn't do a sync after a delete
+        # I'll send a patch to fix this in that side, after which this
+        # could be removed
         self._db.sync()
+
+
+class StateCache(DjangoSessionCacheAdapter):
+    """Store state information that is needed to associate a logout
+    request with its response.
+    """
+
+    def __init__(self, django_session):
+        super(StateCache, self).__init__(django_session, '_state')
