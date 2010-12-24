@@ -1,0 +1,136 @@
+.. _install:
+
+Django integration
+==================
+
+PySAML2 has built in support for the popular Django framework. This mean
+that you can protect your Django based project with a service provider
+based on PySAML. This way it will talk SAML2 with your Identity Provider
+allowing you to use this authentication mechanism. This document will
+guide you through a few simple steps to accomplish such goal.
+
+This integration is done with a Django application called djangosaml2.
+
+Dependencies
+------------
+
+First you have to install PySAML2 dependencies in order to use djangosaml2.
+These dependencies are the ``httplib2`` and ``decorator`` packages. You can
+install them using your preferred method such as easy_install, pip, buildout
+or any other system.
+
+Then you can install PySAML2 itsef, which includes the djangosaml2 package.
+As it is also a distutils project available in pypi you can use easy_install
+or any of the other programms again.
+
+Configuration
+-------------
+
+There are three things you need to setup to make djangosaml2 works in your
+Django project:
+
+1. **settings.py** as you may already know, it is the main Django
+   configuration file.
+2. **urls.py** is the file where you will include djangosaml2 urls.
+3. **pysaml2** specific files such as a attribute map directory and a
+   certificate.
+
+Changes in the settings.py file
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+The first thing you need to do is add ``djangosaml2`` to the list of
+installed apps::
+
+  INSTALLED_APPS = (
+      'django.contrib.auth',
+      'django.contrib.contenttypes',
+      'django.contrib.sessions',
+      'django.contrib.sites',
+      'django.contrib.messages',
+      'django.contrib.admin',
+      'djangosaml2',  # new application
+  )
+
+Actually this is not really required since djangosaml2 does not include
+any data model. The only reason we include it is to be able to run
+djangosaml2 test suite from our project, something you should always
+do to make sure it is compatible with your Django version and environment.
+
+.. note::
+
+  You can run the djangosaml2 test suite as you run other Django
+  application test suite. Just type ``python manage.py test djangosaml2``
+
+The next thing you need to do is add the ``djangosaml2.backends.Saml2Backend``
+to the list of authentication backends::
+
+  AUTHENTICATION_BACKENDS = (
+      'djangosaml2.backends.Saml2Backend',  # new auth backend
+      'django.contrib.auth.backends.ModelBackend',
+  )
+
+As you see the ``djangosaml2.backends.Saml2Backend`` should be the
+first backend. After the authorization request is succesfully answered by
+the Identity Provider, the user information is sent in a SAML2 assertion
+and this authentication backend will process that information to find the
+relevant Django user or create one if none is found. Further processing
+such as user update may be done afterwards. We will see later how to
+customize this.
+
+Finally we have to tell Django what is the new login url we want to use::
+
+  LOGIN_URL = '/saml2/login/'
+  SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+
+Here we are telling Django that any view that requires an authenticated
+user should redirect the user browser to that url if the user has not
+been authenticated before. We are also telling that when the user closes
+his browser, the session should be terminated. This is useful in SAML2
+federations where the logout protocol is not always available.
+
+.. note::
+
+  The login url starts with ``/saml2/`` as an example but you can change that
+  if you want. Check the section about changes in the ``urls.py``
+  file for more information.
+
+
+Changes in the urls.py file
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The next thing you need to do is to include ``djangosaml2.urls`` module to your
+main ``urls.py`` module::
+
+  urlpatterns = patterns(
+      '',
+      #  lots of url definitions here
+
+      (r'^saml2/', include('djangosaml2.urls')),
+
+      #  more url definitions
+  )
+
+As you can see we are including ``djangosaml2.urls`` under the *saml2*
+prefix. Feel free to use your own prefix but be consistent with what
+you have put in the ``settings.py`` file in the LOGIN_URL parameter.
+
+
+PySAML2 specific files and configuration
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TODO
+
+Testing
+-------
+
+TODO
+
+How does it work
+----------------
+
+TODO
+
+FAQ
+---
+
+Why not put everything in a Django middleware class and make our lifes easier?
+
+TODO
