@@ -14,12 +14,19 @@ This integration is done with a Django application called djangosaml2.
 Dependencies
 ------------
 
-First you have to install PySAML2 dependencies in order to use djangosaml2.
+PySAML2 uses xmlsec1_ binary to sign SAML assertions so you need to install
+it either through your operating system package or by compiling the source
+code. It doesn't matter where the final executable is installed because
+you will need to set the full path to it in the configuration stage.
+
+.. _xmlsec1: http://www.aleksey.com/xmlsec/
+
+Then you have to install PySAML2 dependencies in order to use djangosaml2.
 These dependencies are the ``httplib2`` and ``decorator`` packages. You can
 install them using your preferred method such as easy_install, pip, buildout
 or any other system.
 
-Then you can install PySAML2 itsef, which includes the djangosaml2 package.
+Finally you will install PySAML2 itsef, which includes the djangosaml2 package.
 As it is also a distutils project available in pypi you can use easy_install
 or any of the other programms again.
 
@@ -57,8 +64,9 @@ do to make sure it is compatible with your Django version and environment.
 
 .. note::
 
-  You can run the djangosaml2 test suite as you run other Django
-  application test suite. Just type ``python manage.py test djangosaml2``
+  When you finish the configuation you can run the djangosaml2 test suite
+  as you run other Django application test suite. Just type
+  ``python manage.py test djangosaml2``
 
 The next thing you need to do is add the ``djangosaml2.backends.Saml2Backend``
 to the list of authentication backends::
@@ -116,21 +124,156 @@ you have put in the ``settings.py`` file in the LOGIN_URL parameter.
 
 PySAML2 specific files and configuration
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-TODO
+Once you have finished configuring your Django project you have to
+start configuring PySAML. If you use just that library you have to
+put your configuration options in a file and initialize PySAML2 with
+the path to that file.
 
-Testing
--------
+In djangosaml2 you just put the same information in the Django
+settings.py file under the SAML_CONFIG reference.
 
-TODO
+We will see a typical configuration for protecting a Django project::
 
-How does it work
-----------------
+  SAML_CONFIG = {
+    # full path to the xmlsec1 binary programm
+    'xmlsec_binary': '/usr/bin/xmlsec1',
 
-TODO
+    # your entity id, usually your subdomain plust the url to the metadata view
+    'entityid': 'http://localhost:8000/saml2/metadata/',
 
-FAQ
----
+    # directory with attribute mapping
+    'attribute_map_dir': path.join(BASEDIR, 'attribute-maps'),
 
-Why not put everything in a Django middleware class and make our lifes easier?
+    # this block states what services we provide
+    'service': {
+        # we are just a lonely SP
+        'sp' : {
+            'name': 'Federated Django sample SP',
+            'endpoints': {
+                # url and binding to the assetion consumer service view
+                # do not change the binding or service name
+                'assertion_consumer_service': [
+                    ('http://localhost:8000/saml2/acs/',
+                     saml2.BINDING_HTTP_POST),
+                    ],
+                # url and binding to the single logout service view
+                # do not change the binding or service name
+                'single_logout_service': [
+                    ('http://localhost:8000/saml2/ls/',
+                     saml2.BINDING_HTTP_REDIRECT),
+                    ],
+                },
 
-TODO
+             # attributes that this project need to identify a user
+            'required_attributes': ['uid'],
+
+             # attributes that may be useful to have but not required
+            'optional_attributes': ['eduPersonAffiliation'],
+
+            # in this section the list of IdPs we talk to are defined
+            'idp': {
+                # we do not need a WAYF service since there is
+                # only an IdP defined here. This IdP should be
+                # present in our metadata
+
+                # the keys of this dictionary are entity ids
+                'https://localhost/simplesaml/saml2/idp/metadata.php': {
+                    'single_sign_on_service': {
+                        saml2.BINDING_HTTP_REDIRECT: 'https://localhost/simplesaml/saml2/idp/SSOService.php',
+                        },
+                    'single_logout_service': {
+                        saml2.BINDING_HTTP_REDIRECT: 'https://localhost/simplesaml/saml2/idp/SingleLogoutService.php',
+                        },
+                    },
+                },
+            },
+        },
+
+    # where the remote metadata is stored
+    'metadata': {
+        'local': [path.join(BASEDIR, 'remote_metadata.xml')],
+        },
+
+    # set to 1 to output debugging information
+    'debug': 1,
+
+    # certificate
+    'key_file': path.join(BASEDIR, 'mycert.key'),  # private part
+    'cert_file': path.join(BASEDIR, 'mycert.pem'),  # public part
+
+    # own metadata settings
+    'contact_person': [
+        {'given_name': 'Lorenzo',
+         'sur_name': 'Gil',
+         'company': 'Yaco Sistemas',
+         'email_address': 'lgs@yaco.es',
+         'contact_type': 'technical'},
+        {'given_name': 'Angel',
+         'sur_name': 'Fernandez',
+         'company': 'Yaco Sistemas',
+         'email_address': 'angel@yaco.es',
+         'contact_type': 'administrative'},
+        ],
+    # you can set multilanguage information here
+    'organization': {
+        'name': [('Yaco Sistemas', 'es'), ('Yaco Systems', 'en')],
+        'display_name': [('Yaco', 'es'), ('Yaco', 'en')],
+        'url': [('http://www.yaco.es', 'es'), ('http://www.yaco.com', 'en')],
+        },
+    'valid_for': 24,  #  how long is our metadata valid
+    }
+
+.. note::
+
+  Please check the PySAML2 documentation for more information about
+  these and other configuration options.
+
+There are several external files and directories you have to create according
+to this configuration.
+
+The xmlsec1 binary was mentioned in the Dependencies section. Here, in the
+configuration part you just need to put the full path to xmlsec1 so PySAML2
+can call it as it needs.
+
+The ``attribute_map_dir`` points to a directory with attribute mappings that
+are used to translate user attribute names from several standards. It's usually
+safe to just copy the default PySAML2 attribute maps that you can find in the
+``tests/attributemaps`` directory of the source distribution.
+
+The ``metadata`` option is a dictionary where you can define several types of
+metadata for remote entities. Usually the easiest type is the ``local`` where
+you just put the name of a local XML file with the contents of the remote
+entities metadata. This XML file should be in the SAML2 metadata format.
+
+The ``key_file`` and ``cert_file`` options references the two parts of a
+standard x509 certificate. You need it to sign your metadata an to encrypt
+and decrypt the SAML2 assertions.
+
+.. note::
+
+  Check your openssl documentation to generate a test certificate but don't
+  forget to order a real one when you go into production.
+
+IdP setup
+^^^^^^^^^
+Congratulations, you have finished configuring the SP side of the federation.
+Now you need to send the entity id and the metadata of this new SP to the
+IdP administrators so they can add it to their list of trusted services.
+
+You can get this information starting your Django development server and
+going to the http://localhost:8000/saml2/metadata url. If you have included
+the djangosaml2 urls under a different url prefix you need to correct this
+url.
+
+
+.. How does it work
+.. ----------------
+
+.. TODO
+
+.. FAQ
+.. ---
+
+.. Why not put everything in a Django middleware class and make our lifes easier?
+
+.. TODO
