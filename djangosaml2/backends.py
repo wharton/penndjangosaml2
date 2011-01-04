@@ -19,6 +19,11 @@ from django.contrib.auth.models import User
 
 
 class Saml2Backend(ModelBackend):
+    """This backend is added automatically by the assertion_consumer_service
+    view.
+
+    Don't add it to settings.AUTHENTICATION_BACKENDS.
+    """
 
     def authenticate(self, session_info=None):
         if session_info is None:

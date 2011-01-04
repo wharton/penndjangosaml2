@@ -68,22 +68,6 @@ do to make sure it is compatible with your Django version and environment.
   as you run other Django application test suite. Just type
   ``python manage.py test djangosaml2``
 
-The next thing you need to do is add the ``djangosaml2.backends.Saml2Backend``
-to the list of authentication backends::
-
-  AUTHENTICATION_BACKENDS = (
-      'djangosaml2.backends.Saml2Backend',  # new auth backend
-      'django.contrib.auth.backends.ModelBackend',
-  )
-
-As you see the ``djangosaml2.backends.Saml2Backend`` should be the
-first backend. After the authorization request is succesfully answered by
-the Identity Provider, the user information is sent in a SAML2 assertion
-and this authentication backend will process that information to find the
-relevant Django user or create one if none is found. Further processing
-such as user update may be done afterwards. We will see later how to
-customize this.
-
 Finally we have to tell Django what is the new login url we want to use::
 
   LOGIN_URL = '/saml2/login/'
