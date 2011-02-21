@@ -183,18 +183,15 @@ def logout_service(request, config_loader=config_settings_loader):
         raise Http404('No SAMLResponse or SAMLRequest parameter found')
 
 
-def metadata(request, config_loader=config_settings_loader):
+def metadata(request, config_loader=config_settings_loader, sign=False):
     """Returns an XML with the SAML 2.0 metadata for this
     SP as configured in the settings.py file.
     """
-    ed_id = getattr(settings, 'SAML_METADATA_ID', '')
-    name = getattr(settings, 'SAML_METADATA_NAME', '')
-    sign = getattr(settings, 'SAML_METADATA_SIGN', False)
     conf = config_loader()
     valid_for = conf.get('valid_for', 24)
     output = entities_descriptor([entity_descriptor(conf, valid_for)],
-                                 valid_for, name, ed_id, sign,
-                                 SecurityContext(conf.xmlsec(),
-                                                 conf['key_file']))
+                                 valid_for, conf.name(), conf['entityid'],
+                                 sign, SecurityContext(conf.xmlsec(),
+                                                       conf['key_file']))
     return HttpResponse(content=str(output),
                         content_type="text/xml; charset=utf8")
