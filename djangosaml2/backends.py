@@ -25,8 +25,9 @@ class Saml2Backend(ModelBackend):
     Don't add it to settings.AUTHENTICATION_BACKENDS.
     """
 
-    def authenticate(self, session_info=None):
-        if session_info is None:
+    def authenticate(self, session_info=None, attribute_mapping=None,
+                     create_unknown_user=True):
+        if session_info is None or attribute_mapping is None:
             return None
 
         if not 'ava' in session_info:
@@ -34,7 +35,9 @@ class Saml2Backend(ModelBackend):
 
         attributes = session_info['ava']
         try:
-            saml_user = attributes[settings.SAML_USERNAME_ATTRIBUTE][0]
+            reverse_mapping = dict([(v, k)
+                                    for k, v in attribute_mapping.items()])
+            saml_user = attributes[reverse_mapping['username']][0]
         except KeyError:
             return None
 
@@ -44,16 +47,16 @@ class Saml2Backend(ModelBackend):
         # Note that this could be accomplished in one try-except clause, but
         # instead we use get_or_create when creating unknown users since it has
         # built-in safeguards for multiple threads.
-        if getattr(settings, 'SAML_CREATE_UNKNOWN_USER', True):
+        if create_unknown_user:
             user, created = User.objects.get_or_create(username=username)
             if created:
-                user = self.configure_user(user, attributes)
+                user = self.configure_user(user, attributes, attribute_mapping)
             else:
-                user = self.update_user(user, attributes)
+                user = self.update_user(user, attributes, attribute_mapping)
         else:
             try:
                 user = User.objects.get(username=username)
-                user = self.update_user(user, attributes)
+                user = self.update_user(user, attributes, attribute_mapping)
             except User.DoesNotExist:
                 pass
 
@@ -67,24 +70,24 @@ class Saml2Backend(ModelBackend):
         """
         return username
 
-    def configure_user(self, user, attributes):
+    def configure_user(self, user, attributes, attribute_mapping):
         """Configures a user after creation and returns the updated user.
 
         By default, returns the user unmodified.
         """
         return user
 
-    def update_user(self, user, attributes):
+    def update_user(self, user, attributes, attribute_mapping):
         """Update a user with a set of attributes and returns the updated user.
 
         By default it uses a mapping defined in the settings constant
         SAML_ATTRIBUTE_MAPPING.
         """
-        if not hasattr(settings, 'SAML_ATTRIBUTE_MAPPING'):
+        if not attribute_mapping:
             return user
 
         modified = False
-        for saml_attr, django_attr in settings.SAML_ATTRIBUTE_MAPPING.items():
+        for saml_attr, django_attr in attribute_mapping.items():
             try:
                 setattr(user, django_attr, attributes[saml_attr][0])
                 modified = True

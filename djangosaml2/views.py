@@ -45,6 +45,13 @@ def _get_subject_id(session):
     return session['_saml2_subject_id']
 
 
+def get_custom_setting(name, default=None):
+    if hasattr(settings, name):
+        return getattr(settings, name)
+    else:
+        return default
+
+
 def login(request, config_loader=config_settings_loader):
     """SAML Authorization Request initiator
 
@@ -79,8 +86,16 @@ def login(request, config_loader=config_settings_loader):
     return HttpResponseRedirect(location)
 
 
+DEFAULT_ATTRIBUTE_MAPPING = get_custom_setting('SAML_ATTRIBUTE_MAPPING',
+                                               {'uid': 'username'})
+DEFAULT_CREATE_UNKNOWN_USER = get_custom_setting('SAML_CREATE_UNKNOWN_USER',
+                                                 True)
+
+
 @csrf_exempt
-def assertion_consumer_service(request, config_loader=config_settings_loader):
+def assertion_consumer_service(request, config_loader=config_settings_loader,
+                               attribute_mapping=DEFAULT_ATTRIBUTE_MAPPING,
+                               create_unknown_user=DEFAULT_CREATE_UNKNOWN_USER):
     """SAML Authorization Response endpoint
 
     The IdP will send its response to this view, which
@@ -111,7 +126,14 @@ def assertion_consumer_service(request, config_loader=config_settings_loader):
         settings.AUTHENTICATION_BACKENDS = (('djangosaml2.backends.Saml2Backend', )
                                             + settings.AUTHENTICATION_BACKENDS)
 
-    user = auth.authenticate(session_info=session_info)
+    if callable(attribute_mapping):
+        attribute_mapping = attribute_mapping()
+    if callable(create_unknown_user):
+        create_unknown_user = create_unknown_user()
+
+    user = auth.authenticate(session_info=session_info,
+                             attribute_mapping=attribute_mapping,
+                             create_unknown_user=create_unknown_user)
     if user is None:
         return HttpResponse("user not valid")
 
