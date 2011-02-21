@@ -13,8 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import copy
-
 from django.conf import settings
 from django.contrib import auth
 from django.contrib.auth.decorators import login_required
@@ -31,19 +29,12 @@ except ImportError:
 
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
-from saml2.config import SPConfig
 from saml2.metadata import entity_descriptor, entities_descriptor
 from saml2.sigver import SecurityContext
 
 from djangosaml2.cache import IdentityCache, OutstandingQueriesCache
 from djangosaml2.cache import StateCache
-
-
-def _load_conf():
-    """Utility function to load the pysaml2 configuration"""
-    conf = SPConfig()
-    conf.load(copy.deepcopy(settings.SAML_CONFIG))
-    return conf
+from djangosaml2.conf import config_settings_loader
 
 
 def _set_subject_id(session, subject_id):
@@ -54,7 +45,7 @@ def _get_subject_id(session):
     return session['_saml2_subject_id']
 
 
-def login(request):
+def login(request, config_loader=config_settings_loader):
     """SAML Authorization Request initiator
 
     This view initiates the SAML2 Authorization handshake
@@ -63,7 +54,7 @@ def login(request):
     """
     came_from = request.GET.get('next', '/')
     selected_idp = request.GET.get('idp', None)
-    conf = _load_conf()
+    conf = config_loader()
     if selected_idp is None and conf.is_wayf_needed():
         return render_to_response('djangosaml2/wayf.html', {
                 'available_idps': conf.get_available_idps(),
@@ -89,7 +80,7 @@ def login(request):
 
 
 @csrf_exempt
-def assertion_consumer_service(request):
+def assertion_consumer_service(request, config_loader=config_settings_loader):
     """SAML Authorization Response endpoint
 
     The IdP will send its response to this view, which
@@ -98,7 +89,7 @@ def assertion_consumer_service(request):
     djangosaml2.backends.Saml2Backend that should be
     enabled in the settings.py
     """
-    conf = _load_conf()
+    conf = config_loader()
     post = {'SAMLResponse': request.POST['SAMLResponse']}
     client = Saml2Client(conf, identity_cache=IdentityCache(request.session))
 
@@ -133,14 +124,14 @@ def assertion_consumer_service(request):
 
 
 @login_required
-def logout(request):
+def logout(request, config_loader=config_settings_loader):
     """SAML Logout Request initiator
 
     This view initiates the SAML2 Logout request
     using the pysaml2 library to create the LogoutRequest.
     """
     state = StateCache(request.session)
-    client = Saml2Client(_load_conf(), state_cache=state,
+    client = Saml2Client(config_loader(), state_cache=state,
                          identity_cache=IdentityCache(request.session))
     subject_id = _get_subject_id(request.session)
     session_id, code, head, body = client.global_logout(subject_id)
@@ -149,7 +140,7 @@ def logout(request):
     return HttpResponseRedirect(headers['Location'])
 
 
-def logout_service(request):
+def logout_service(request, config_loader=config_settings_loader):
     """SAML Logout Response endpoint
 
     The IdP will send the logout response to this view,
@@ -159,7 +150,7 @@ def logout_service(request):
     we didn't initiate the process as a single logout
     request started by another SP.
     """
-    conf = _load_conf()
+    conf = config_loader()
     state = StateCache(request.session)
     client = Saml2Client(conf, state_cache=state,
                          identity_cache=IdentityCache(request.session))
@@ -192,14 +183,14 @@ def logout_service(request):
         raise Http404('No SAMLResponse or SAMLRequest parameter found')
 
 
-def metadata(request):
+def metadata(request, config_loader=config_settings_loader):
     """Returns an XML with the SAML 2.0 metadata for this
     SP as configured in the settings.py file.
     """
     ed_id = getattr(settings, 'SAML_METADATA_ID', '')
     name = getattr(settings, 'SAML_METADATA_NAME', '')
     sign = getattr(settings, 'SAML_METADATA_SIGN', False)
-    conf = _load_conf()
+    conf = config_loader()
     valid_for = conf.get('valid_for', 24)
     output = entities_descriptor([entity_descriptor(conf, valid_for)],
                                  valid_for, name, ed_id, sign,

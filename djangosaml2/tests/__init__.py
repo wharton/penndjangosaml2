@@ -60,8 +60,8 @@ class SAML2Tests(TestCase):
 
     def test_login_one_idp(self):
         # monkey patch SAML configuration
-        views._load_conf = conf.create_conf(sp_host='sp.example.com',
-                                            idp_hosts=['idp.example.com'])
+        settings.SAML_CONFIG = conf.create_conf(sp_host='sp.example.com',
+                                                idp_hosts=['idp.example.com'])
 
         response = self.client.get('/login/')
         self.assertEquals(response.status_code, 302)
@@ -98,10 +98,11 @@ class SAML2Tests(TestCase):
         self.assertEquals(params['RelayState'][0], next)
 
     def test_login_several_idps(self):
-        views._load_conf = conf.create_conf(sp_host='sp.example.com',
-                                            idp_hosts=['idp1.example.com',
-                                                       'idp2.example.com',
-                                                       'idp3.example.com'])
+        settings.SAML_CONFIG = conf.create_conf(sp_host='sp.example.com',
+                                                idp_hosts=['idp1.example.com',
+                                                           'idp2.example.com',
+                                                           'idp3.example.com'])
+
         response = self.client.get('/login/')
         # a WAYF page should be displayed
         self.assertContains(response, 'Where are you from?', status_code=200)
@@ -135,10 +136,10 @@ class SAML2Tests(TestCase):
         # there are no users in the database
         self.assertEquals(User.objects.count(), 0)
 
-        views._load_conf = conf.create_conf(sp_host='sp.example.com',
-                                            idp_hosts=['idp.example.com'])
+        settings.SAML_CONFIG = conf.create_conf(sp_host='sp.example.com',
+                                                idp_hosts=['idp.example.com'])
 
-        config = views._load_conf()
+        config = views.config_settings_loader()
         # session_id should start with a letter since it is a NCName
         session_id = "a0123456789abcdef0123456789abcdef"
         came_from = '/another-view/'
@@ -179,7 +180,7 @@ class SAML2Tests(TestCase):
 
     def do_login(self):
         """Auxiliary method used in several tests (mainly logout tests)"""
-        config = views._load_conf()
+        config = views.config_settings_loader()
         session_id = "a0123456789abcdef0123456789abcdef"
         came_from = '/another-view/'
         saml_response = auth_response({'uid': 'student'}, session_id, config)
@@ -194,8 +195,8 @@ class SAML2Tests(TestCase):
         self.assertEquals(response.status_code, 302)
 
     def test_logout(self):
-        views._load_conf = conf.create_conf(sp_host='sp.example.com',
-                                            idp_hosts=['idp.example.com'])
+        settings.SAML_CONFIG = conf.create_conf(sp_host='sp.example.com',
+                                                idp_hosts=['idp.example.com'])
 
         self.do_login()
 
@@ -218,8 +219,8 @@ class SAML2Tests(TestCase):
         self.assertSAMLRequestsEquals(expected_request, xml)
 
     def test_logout_service_local(self):
-        views._load_conf = conf.create_conf(sp_host='sp.example.com',
-                                            idp_hosts=['idp.example.com'])
+        settings.SAML_CONFIG = conf.create_conf(sp_host='sp.example.com',
+                                                idp_hosts=['idp.example.com'])
 
         self.do_login()
 
@@ -257,8 +258,8 @@ class SAML2Tests(TestCase):
         self.assertEquals(self.client.session.keys(), [])
 
     def test_logout_service_global(self):
-        views._load_conf = conf.create_conf(sp_host='sp.example.com',
-                                            idp_hosts=['idp.example.com'])
+        settings.SAML_CONFIG = conf.create_conf(sp_host='sp.example.com',
+                                                idp_hosts=['idp.example.com'])
 
         self.do_login()
 
@@ -289,8 +290,8 @@ class SAML2Tests(TestCase):
         self.assertSAMLRequestsEquals(expected_response, xml)
 
     def test_metadata(self):
-        views._load_conf = conf.create_conf(sp_host='sp.example.com',
-                                            idp_hosts=['idp.example.com'])
+        settings.SAML_CONFIG = conf.create_conf(sp_host='sp.example.com',
+                                                idp_hosts=['idp.example.com'])
 
         valid_until = datetime.datetime.utcnow() + datetime.timedelta(hours=24)
         valid_until = valid_until.strftime("%Y-%m-%dT%H:%M:%SZ")
