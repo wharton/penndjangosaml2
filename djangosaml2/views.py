@@ -222,10 +222,16 @@ def register_namespace_prefixes():
     from saml2 import md, saml, samlp
     import xmlenc
     import xmldsig
-    xml.etree.ElementTree.register_namespace('saml', saml.NAMESPACE)
-    xml.etree.ElementTree.register_namespace('samlp', samlp.NAMESPACE)
-    xml.etree.ElementTree.register_namespace('md', md.NAMESPACE)
-    xml.etree.ElementTree.register_namespace('ds', xmldsig.NAMESPACE)
-    xml.etree.ElementTree.register_namespace('xenc', xmlenc.NAMESPACE)
+    prefixes = (('saml', saml.NAMESPACE),
+                ('samlp', samlp.NAMESPACE),
+                ('md', md.NAMESPACE),
+                ('ds', xmldsig.NAMESPACE),
+                ('xenc', xmlenc.NAMESPACE))
+    if hasattr(xml.etree.ElementTree, 'register_namespace'):
+        for prefix, namespace in prefixes:
+            xml.etree.ElementTree.register_namespace(prefix, namespace)
+    else:
+        for prefix, namespace in prefixes:
+            xml.etree.ElementTree._namespace_map[namespace] = prefix
 
 register_namespace_prefixes()
