@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import xml.etree.ElementTree
+
 from django.conf import settings
 from django.contrib import auth
 from django.contrib.auth.decorators import login_required
@@ -211,5 +213,19 @@ def metadata(request, config_loader=config_settings_loader, sign=False):
     """
     conf = config_loader()
     valid_for = conf.get('valid_for', 24)
-    return HttpResponse(content=str(entity_descriptor(conf, valid_for)),
+    metadata = entity_descriptor(conf, valid_for)
+    return HttpResponse(content=str(metadata),
                         content_type="text/xml; charset=utf8")
+
+
+def register_namespace_prefixes():
+    from saml2 import md, saml, samlp
+    import xmlenc
+    import xmldsig
+    xml.etree.ElementTree.register_namespace('saml', saml.NAMESPACE)
+    xml.etree.ElementTree.register_namespace('samlp', samlp.NAMESPACE)
+    xml.etree.ElementTree.register_namespace('md', md.NAMESPACE)
+    xml.etree.ElementTree.register_namespace('ds', xmldsig.NAMESPACE)
+    xml.etree.ElementTree.register_namespace('xenc', xmlenc.NAMESPACE)
+
+register_namespace_prefixes()
