@@ -8,4 +8,4 @@ include djangosaml2/tests/mycert.csr
 include djangosaml2/tests/mycert.key
 include djangosaml2/tests/mycert.pem
 include djangosaml2/tests/remote_metadata.xml
-recursive-include djangosaml2/tests/attribute-maps
+recursive-include djangosaml2/tests/attribute-maps *
