@@ -46,6 +46,6 @@ setup(
     zip_safe=False,
     install_requires=[
         'distribute',
-        'pysaml2',
+        'python-saml2',
         ],
     )
