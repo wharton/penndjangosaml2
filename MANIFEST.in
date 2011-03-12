@@ -1,11 +1,9 @@
 include README
 include CHANGES
 include COPYING
-include djangosaml2/tests/idpcert.csr
-include djangosaml2/tests/idpcert.key
-include djangosaml2/tests/idpcert.pem
-include djangosaml2/tests/mycert.csr
-include djangosaml2/tests/mycert.key
-include djangosaml2/tests/mycert.pem
-include djangosaml2/tests/remote_metadata.xml
+recursive-include djangosaml2/templates/djangosaml2/ *.html
+recursive-include djangosaml2/tests/ *.csr
+recursive-include djangosaml2/tests/ *.key
+recursive-include djangosaml2/tests/ *.pem
+recursive-include djangosaml2/tests/ *.xml
 recursive-include djangosaml2/tests/attribute-maps *

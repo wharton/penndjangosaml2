@@ -43,6 +43,7 @@ setup(
     url="http://packages.python.org/djangosaml2/",
     license='Apache 2.0',
     packages=find_packages(),
+    include_package_data=True,
     zip_safe=False,
     install_requires=[
         'distribute',
