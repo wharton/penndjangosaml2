@@ -31,8 +31,7 @@ except ImportError:
 
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
-from saml2.metadata import entity_descriptor, entities_descriptor
-from saml2.sigver import SecurityContext
+from saml2.metadata import entity_descriptor
 
 from djangosaml2.cache import IdentityCache, OutstandingQueriesCache
 from djangosaml2.cache import StateCache
