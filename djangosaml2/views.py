@@ -53,7 +53,9 @@ def get_custom_setting(name, default=None):
         return default
 
 
-def login(request, config_loader=config_settings_loader):
+def login(request,
+          config_loader=config_settings_loader,
+          wayf_template='djangosaml2/wayf.html'):
     """SAML Authorization Request initiator
 
     This view initiates the SAML2 Authorization handshake
@@ -64,7 +66,7 @@ def login(request, config_loader=config_settings_loader):
     selected_idp = request.GET.get('idp', None)
     conf = config_loader()
     if selected_idp is None and conf.is_wayf_needed():
-        return render_to_response('djangosaml2/wayf.html', {
+        return render_to_response(wayf_template, {
                 'available_idps': conf.get_available_idps(),
                 'came_from': came_from,
                 }, context_instance=RequestContext(request))
