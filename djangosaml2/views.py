@@ -206,7 +206,7 @@ def logout_service(request, config_loader=config_settings_loader):
         raise Http404('No SAMLResponse or SAMLRequest parameter found')
 
 
-def metadata(request, config_loader=config_settings_loader, sign=False):
+def metadata(request, config_loader=config_settings_loader):
     """Returns an XML with the SAML 2.0 metadata for this
     SP as configured in the settings.py file.
     """
