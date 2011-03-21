@@ -316,3 +316,8 @@ of making it easier to configure but has a couple of disadvantages: first,
 the middleware would need to check if the request path is one of the
 SAML endpoints for every request. Second, it would be too magical and in
 case of a problem, much harder to debug.
+
+**Why not call this package django-saml as many other Django applications?**
+
+Following that pattern then I should import the application with
+import saml but unfortunately that's module name is already used in pysaml2.
