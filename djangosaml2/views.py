@@ -149,6 +149,21 @@ def assertion_consumer_service(request, config_loader=config_settings_loader,
 
 
 @login_required
+def echo_attributes(request,
+                    config_loader=config_settings_loader,
+                    template='djangosaml2/echo_attributes.html'):
+    """Example view that echo the SAML attributes of an user"""
+    state = StateCache(request.session)
+    client = Saml2Client(config_loader(), state_cache=state,
+                         identity_cache=IdentityCache(request.session))
+    subject_id = _get_subject_id(request.session)
+    identity = client.users.get_identity(subject_id,
+                                         check_not_on_or_after=False)
+    return render_to_response(template, {'attributes': identity[0]},
+                              context_instance=RequestContext(request))
+
+
+@login_required
 def logout(request, config_loader=config_settings_loader):
     """SAML Logout Request initiator
 
