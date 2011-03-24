@@ -72,9 +72,9 @@ class Saml2Backend(ModelBackend):
     def configure_user(self, user, attributes, attribute_mapping):
         """Configures a user after creation and returns the updated user.
 
-        By default, returns the user unmodified.
+        By default, returns the user with his attributes updated.
         """
-        return user
+        return self.update_user(user, attributes, attribute_mapping)
 
     def update_user(self, user, attributes, attribute_mapping):
         """Update a user with a set of attributes and returns the updated user.
