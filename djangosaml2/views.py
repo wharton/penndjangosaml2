@@ -180,7 +180,8 @@ def logout(request, config_loader=config_settings_loader):
     return HttpResponseRedirect(headers['Location'])
 
 
-def logout_service(request, config_loader=config_settings_loader):
+def logout_service(request, config_loader=config_settings_loader,
+                   next_page=None):
     """SAML Logout Response endpoint
 
     The IdP will send the logout response to this view,
@@ -200,7 +201,7 @@ def logout_service(request, config_loader=config_settings_loader):
                                           binding=BINDING_HTTP_REDIRECT)
         state.sync()
         if response and response[1] == '200 Ok':
-            return django_logout(request)
+            return django_logout(request, next_page=next_page)
         else:
             return HttpResponse('Error during logout')
 
