@@ -1,9 +1,13 @@
 Changes
 =======
 
-0.1.1 (unreleased)
+0.1.1 (2011-04-18)
 ------------------
--...
+- Simple view to echo SAML attributes
+- Improve documentation
+- Change default behaviour when a new user is created. Now their attributes
+  are filled this first time
+- Allow to set a next page after the logout
 
 0.1.0 (2011-03-16)
 ------------------
