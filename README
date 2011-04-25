@@ -22,7 +22,7 @@ you will need to set the full path to it in the configuration stage.
 
 .. _xmlsec1: http://www.aleksey.com/xmlsec/
 
-Now you can install the djangosaml2 package using easy_isntall or pip. This
+Now you can install the djangosaml2 package using easy_install or pip. This
 will also install PySAML2 and its dependencies automatically.
 
 
@@ -341,4 +341,4 @@ case of a problem, much harder to debug.
 **Why not call this package django-saml as many other Django applications?**
 
 Following that pattern then I should import the application with
-import saml but unfortunately that's module name is already used in pysaml2.
+import saml but unfortunately that module name is already used in pysaml2.
