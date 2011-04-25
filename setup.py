@@ -40,7 +40,7 @@ setup(
     keywords="pysaml2 django",
     author="Yaco Sistemas",
     author_email="lgs@yaco.es",
-    url="http://packages.python.org/djangosaml2/",
+    url="https://bitbucket.org/lgs/djangosaml2",
     license='Apache 2.0',
     packages=find_packages(),
     include_package_data=True,
