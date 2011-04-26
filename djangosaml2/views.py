@@ -13,7 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import xml.etree.ElementTree
+try:
+    from xml.etree import ElementTree
+except ImportError:
+    from elementtree import ElementTree
 
 from django.conf import settings
 from django.contrib import auth
@@ -244,11 +247,11 @@ def register_namespace_prefixes():
                 ('md', md.NAMESPACE),
                 ('ds', xmldsig.NAMESPACE),
                 ('xenc', xmlenc.NAMESPACE))
-    if hasattr(xml.etree.ElementTree, 'register_namespace'):
+    if hasattr(ElementTree, 'register_namespace'):
         for prefix, namespace in prefixes:
-            xml.etree.ElementTree.register_namespace(prefix, namespace)
+            ElementTree.register_namespace(prefix, namespace)
     else:
         for prefix, namespace in prefixes:
-            xml.etree.ElementTree._namespace_map[namespace] = prefix
+            ElementTree._namespace_map[namespace] = prefix
 
 register_namespace_prefixes()
