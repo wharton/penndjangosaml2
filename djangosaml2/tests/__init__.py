@@ -29,6 +29,7 @@ from djangosaml2 import views
 from djangosaml2.cache import OutstandingQueriesCache
 from djangosaml2.tests import conf
 from djangosaml2.tests.auth_response import auth_response
+from djangosaml2.signals import post_authenticated
 
 
 class SAML2Tests(TestCase):
@@ -323,3 +324,14 @@ ID4zT0FcZASGuthM56rRJJSx
         self.assertEquals(response['Content-type'], 'text/xml; charset=utf8')
         self.assertEquals(response.status_code, 200)
         self.assertEquals(response.content, expected_metadata)
+
+    def test_post_authenticated_signal(self):
+
+        def signal_handler(signal, user, session_info):
+            self.assertEquals(isinstance(user, User), True)
+
+        post_authenticated.connect(signal_handler, dispatch_uid='test_signal')
+
+        self.do_login()
+
+        post_authenticated.disconnect(dispatch_uid='test_signal')

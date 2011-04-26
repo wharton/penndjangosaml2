@@ -39,6 +39,7 @@ from saml2.metadata import entity_descriptor
 from djangosaml2.cache import IdentityCache, OutstandingQueriesCache
 from djangosaml2.cache import StateCache
 from djangosaml2.conf import config_settings_loader
+from djangosaml2.signals import post_authenticated
 
 
 def _set_subject_id(session, subject_id):
@@ -145,6 +146,8 @@ def assertion_consumer_service(request, config_loader=config_settings_loader,
 
     auth.login(request, user)
     _set_subject_id(request.session, session_info['name_id'])
+
+    post_authenticated.send_robust(sender=user, session_info=session_info)
 
     # redirect the user to the view where he came from
     relay_state = request.POST.get('RelayState', '/')
