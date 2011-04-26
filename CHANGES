@@ -1,9 +1,11 @@
 Changes
 =======
 
-0.1.2dev (unreleased)
----------------------
-- ...
+0.2.0 (2011-04-26)
+------------------
+- Python 2.4 compatible if the elementtree library is installed
+- Allow post processing after the authentication phase by using
+  Django signals.
 
 0.1.1 (2011-04-18)
 ------------------
