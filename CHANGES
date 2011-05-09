@@ -1,6 +1,11 @@
 Changes
 =======
 
+0.2.1 (2011-05-09)
+------------------
+- If no next parameter is supplied to the login view, use the
+  settings.LOGIN_REDIRECT_URL as default
+
 0.2.0 (2011-04-26)
 ------------------
 - Python 2.4 compatible if the elementtree library is installed
