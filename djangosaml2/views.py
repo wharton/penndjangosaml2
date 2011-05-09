@@ -66,7 +66,7 @@ def login(request,
     using the pysaml2 library to create the AuthnRequest.
     It uses the SAML 2.0 Http Redirect protocol binding.
     """
-    came_from = request.GET.get('next', '/')
+    came_from = request.GET.get('next', settings.LOGIN_REDIRECT_URL)
     selected_idp = request.GET.get('idp', None)
     conf = config_loader()
     if selected_idp is None and conf.is_wayf_needed():
