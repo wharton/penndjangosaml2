@@ -59,7 +59,8 @@ def get_custom_setting(name, default=None):
 
 def login(request,
           config_loader=config_settings_loader,
-          wayf_template='djangosaml2/wayf.html'):
+          wayf_template='djangosaml2/wayf.html',
+          authorization_error_template='djangosaml2/auth_error.html'):
     """SAML Authorization Request initiator
 
     This view initiates the SAML2 Authorization handshake
@@ -67,6 +68,12 @@ def login(request,
     It uses the SAML 2.0 Http Redirect protocol binding.
     """
     came_from = request.GET.get('next', settings.LOGIN_REDIRECT_URL)
+
+    if not request.user.is_anonymous():
+        return render_to_response(authorization_error_template, {
+                'came_from': came_from,
+                }, context_instance=RequestContext(request))
+
     selected_idp = request.GET.get('idp', None)
     conf = config_loader()
     if selected_idp is None and conf.is_wayf_needed():
