@@ -1,6 +1,12 @@
 Changes
 =======
 
+0.2.2 (2011-06-07)
+------------------
+- Prevent infinite loop when going to the /saml2/login/ endpoint and the user
+  is already logged in and the settings.LOGIN_REDIRECT_URL is (badly) pointing
+  to /saml2/login.
+
 0.2.1 (2011-05-09)
 ------------------
 - If no next parameter is supplied to the login view, use the
