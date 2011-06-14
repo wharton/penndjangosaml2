@@ -74,9 +74,11 @@ class Saml2Backend(ModelBackend):
 
         By default, returns the user with his attributes updated.
         """
-        return self.update_user(user, attributes, attribute_mapping)
+        user.set_unusable_password()
+        return self.update_user(user, attributes, attribute_mapping,
+                                force_save=True)
 
-    def update_user(self, user, attributes, attribute_mapping):
+    def update_user(self, user, attributes, attribute_mapping, force_save=False):
         """Update a user with a set of attributes and returns the updated user.
 
         By default it uses a mapping defined in the settings constant
@@ -94,7 +96,7 @@ class Saml2Backend(ModelBackend):
                 # the saml attribute is missing
                 pass
 
-        if modified:
+        if modified or force_save:
             user.save()
 
         return user
