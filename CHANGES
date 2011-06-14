@@ -1,6 +1,10 @@
 Changes
 =======
 
+0.2.3 (2011-06-14)
+-----------------
+- Set a unusable password when the user is created for the first time
+
 0.2.2 (2011-06-07)
 ------------------
 - Prevent infinite loop when going to the /saml2/login/ endpoint and the user
