@@ -297,7 +297,7 @@ Testing
 =======
 
 One way to check if everything is working as expected is to enable the
-following url:
+following url::
 
   urlpatterns = patterns(
       '',
