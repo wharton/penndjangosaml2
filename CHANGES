@@ -1,6 +1,11 @@
 Changes
 =======
 
+0.3.0 (2011-11-30)
+------------------
+- Templatetag to get the list of available idps.
+- Allow to map the same SAML attribute into several Django field.
+
 0.2.4 (2011-11-29)
 ------------------
 - Fix restructured text bugs that made pypi page looks bad.
