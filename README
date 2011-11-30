@@ -271,10 +271,10 @@ change that one. In order to do so you need to change the
 SAML_ATTRIBUTE_MAPPING option in your settings.py::
 
   SAML_ATTRIBUTE_MAPPING = {
-      'uid': 'username',
-      'mail': 'email',
-      'cn': 'first_name',
-      'sn': 'last_name',
+      'uid': ('username', ),
+      'mail': ('email', ),
+      'cn': ('first_name', ),
+      'sn': ('last_name', ),
   }
 
 where the keys of this dictionary are SAML user attributes and the values

@@ -33,11 +33,12 @@ class Saml2Backend(ModelBackend):
             return None
 
         attributes = session_info['ava']
-        try:
-            reverse_mapping = dict([(v, k)
-                                    for k, v in attribute_mapping.items()])
-            saml_user = attributes[reverse_mapping['username']][0]
-        except KeyError:
+        saml_user = None
+        for saml_attr, django_fields in attribute_mapping.items():
+            if 'username' in django_fields:
+                saml_user = attributes[saml_attr][0]
+
+        if saml_user is None:
             return None
 
         user = None
@@ -88,9 +89,10 @@ class Saml2Backend(ModelBackend):
             return user
 
         modified = False
-        for saml_attr, django_attr in attribute_mapping.items():
+        for saml_attr, django_attrs in attribute_mapping.items():
             try:
-                setattr(user, django_attr, attributes[saml_attr][0])
+                for attr in django_attrs:
+                    setattr(user, attr, attributes[saml_attr][0])
                 modified = True
             except KeyError:
                 # the saml attribute is missing

@@ -101,7 +101,7 @@ def login(request,
 
 
 DEFAULT_ATTRIBUTE_MAPPING = get_custom_setting('SAML_ATTRIBUTE_MAPPING',
-                                               {'uid': 'username'})
+                                               {'uid': ('username', )})
 DEFAULT_CREATE_UNKNOWN_USER = get_custom_setting('SAML_CREATE_UNKNOWN_USER',
                                                  True)
 
