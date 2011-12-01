@@ -23,10 +23,10 @@ class IdPListNode(template.Node):
 
     def __init__(self, variable_name):
         self.variable_name = variable_name
-        self.conf = config_settings_loader()
 
     def render(self, context):
-        context[self.variable_name] = self.conf.get_available_idps()
+        conf = config_settings_loader()
+        context[self.variable_name] = conf.get_available_idps()
         return ''
 
 
