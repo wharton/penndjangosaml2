@@ -16,12 +16,12 @@
 import os
 
 from saml2 import saml, class_name
-from saml2.config import IDPConfig
+from saml2.config import IdPConfig
 from saml2.assertion import Assertion
-from saml2.s_utils import response_factory, sid
+from saml2.s_utils import sid
 from saml2.s_utils import success_status_factory
 from saml2.sigver import signed_instance_factory, pre_signature_part
-from saml2.sigver import security_context
+from saml2.sigver import security_context, response_factory
 
 BASEDIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -37,7 +37,7 @@ def auth_response(identity, in_response_to, sp_conf):
                                 in_response_to=in_response_to,
                                 destination=acs,
                                 status=success_status_factory())
-    idp_conf = IDPConfig()
+    idp_conf = IdPConfig()
     name_form = "urn:oasis:names:tc:SAML:2.0:attrname-format:uri"
     idp_conf.load({
             'entityid': idp_entity_id,

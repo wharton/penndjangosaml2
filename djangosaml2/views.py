@@ -76,7 +76,9 @@ def login(request,
 
     selected_idp = request.GET.get('idp', None)
     conf = config_loader()
-    if selected_idp is None and conf.is_wayf_needed():
+
+    # is a embedded wayf needed?
+    if selected_idp is None and len(conf.idps()) > 1:
         return render_to_response(wayf_template, {
                 'available_idps': conf.get_available_idps(),
                 'came_from': came_from,
@@ -87,7 +89,7 @@ def login(request,
 
     client = Saml2Client(conf)
     (session_id, result) = client.authenticate(
-        location=selected_idp, relay_state=came_from,
+        entityid=selected_idp, relay_state=came_from,
         binding=BINDING_HTTP_REDIRECT,
         )
     assert len(result) == 2
