@@ -128,7 +128,7 @@ def assertion_consumer_service(request, config_loader=config_settings_loader,
     outstanding_queries = oq_cache.outstanding_queries()
 
     # process the authentication response
-    response = client.response(post, conf['entityid'], outstanding_queries)
+    response = client.response(post, outstanding_queries)
     if response is None:
         return HttpResponse("SAML response has errors. Please check the logs")
 
