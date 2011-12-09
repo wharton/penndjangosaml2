@@ -28,10 +28,9 @@ BASEDIR = os.path.dirname(os.path.abspath(__file__))
 
 def auth_response(identity, in_response_to, sp_conf):
     """Generates a fresh signed authentication response"""
-    sp_entity_id = sp_conf['entityid']
-    idp_entity_id = sp_conf['service']['sp']['idp'].keys()[0]
-    acs = sp_conf.endpoint('sp', 'assertion_consumer_service')[0]
-    attribute_converters = sp_conf.attribute_converters()
+    sp_entity_id = sp_conf.entityid
+    idp_entity_id = sp_conf.idps().keys()[0]
+    acs = sp_conf.endpoint('assertion_consumer_service')[0]
     issuer = saml.Issuer(text=idp_entity_id, format=saml.NAMEID_FORMAT_ENTITY)
     response = response_factory(issuer=issuer,
                                 in_response_to=in_response_to,
@@ -41,8 +40,8 @@ def auth_response(identity, in_response_to, sp_conf):
     name_form = "urn:oasis:names:tc:SAML:2.0:attrname-format:uri"
     idp_conf.load({
             'entityid': idp_entity_id,
-            'xmlsec_binary': sp_conf['xmlsec_binary'],
-            'attribute_map_dir': sp_conf['attribute_map_dir'],
+            'xmlsec_binary': sp_conf.xmlsec_binary,
+            'attribute_map_dir': os.path.join(BASEDIR, 'attribute-maps'),
             'service': {
                 'idp': {
                     'endpoints': tuple(),
@@ -61,15 +60,15 @@ def auth_response(identity, in_response_to, sp_conf):
             })
 
     ast = Assertion(identity)
-    policy = idp_conf.idp_policy()
-    ast.apply_policy(sp_entity_id, policy, {})
+    ast.apply_policy(sp_entity_id, idp_conf.policy, {})
     name_id = saml.NameID(format=saml.NAMEID_FORMAT_TRANSIENT,
                           text=sid())
 
     authn_class = saml.AUTHN_PASSWORD
     authn_authn = 'http://idp.example.com/login/'
     assertion = ast.construct(sp_entity_id, in_response_to, acs,
-                              name_id, attribute_converters, policy,
+                              name_id, sp_conf.attribute_converters,
+                              idp_conf.policy,
                               issuer=issuer,
                               authn_class=authn_class,
                               authn_auth=authn_authn)
