@@ -78,14 +78,12 @@ def login(request,
     conf = config_loader()
 
     # is a embedded wayf needed?
-    if selected_idp is None and len(conf.idps()) > 1:
+    idps = conf.idps()
+    if selected_idp is None and len(idps) > 1:
         return render_to_response(wayf_template, {
-                'available_idps': conf.get_available_idps(),
+                'available_idps': idps.items(),
                 'came_from': came_from,
                 }, context_instance=RequestContext(request))
-
-    if selected_idp is not None:
-        selected_idp = conf.single_sign_on_service(selected_idp)
 
     client = Saml2Client(conf)
     (session_id, result) = client.authenticate(
