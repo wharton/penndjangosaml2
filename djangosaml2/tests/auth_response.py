@@ -15,15 +15,19 @@
 
 import os
 
-from saml2 import saml, class_name
+from saml2 import saml
 from saml2.config import IdPConfig
-from saml2.assertion import Assertion
-from saml2.s_utils import sid
 from saml2.s_utils import success_status_factory
-from saml2.sigver import signed_instance_factory, pre_signature_part
-from saml2.sigver import security_context, response_factory
+from saml2.server import Identifier, Server
+from saml2.sigver import response_factory
 
 BASEDIR = os.path.dirname(os.path.abspath(__file__))
+
+
+class FakeDb(dict):
+
+    def sync(self):
+        pass
 
 
 def auth_response(identity, in_response_to, sp_conf):
@@ -58,24 +62,10 @@ def auth_response(identity, in_response_to, sp_conf):
             'cert_file': os.path.join(BASEDIR, 'idpcert.pem'),
             'metadata': '',
             })
+    server = Server("", idp_conf)
+    server.ident = Identifier(FakeDb())
 
-    ast = Assertion(identity)
-    ast.apply_policy(sp_entity_id, idp_conf.policy, {})
-    name_id = saml.NameID(format=saml.NAMEID_FORMAT_TRANSIENT,
-                          text=sid())
-
-    authn_class = saml.AUTHN_PASSWORD
-    authn_authn = 'http://idp.example.com/login/'
-    assertion = ast.construct(sp_entity_id, in_response_to, acs,
-                              name_id, sp_conf.attribute_converters,
-                              idp_conf.policy,
-                              issuer=issuer,
-                              authn_class=authn_class,
-                              authn_auth=authn_authn)
-
-    sec = security_context(idp_conf)
-
-    assertion.signature = pre_signature_part(assertion.id, sec.my_cert, 1)
-    to_sign = [(class_name(assertion), assertion.id)]
-    response.assertion = assertion
-    return signed_instance_factory(response, sec, to_sign)
+    userid = 'irrelevant'
+    response = server.authn_response(identity, in_response_to, acs,
+                                     sp_entity_id, None, userid)
+    return '\n'.join(response)
