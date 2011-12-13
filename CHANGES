@@ -1,0 +1,49 @@
+Changes
+=======
+
+0.3.1 (2011-12-01)
+------------------
+- Load the config in the render method of the idplist templatetag to
+  make it more flexible and reentrant.
+
+0.3.0 (2011-11-30)
+------------------
+- Templatetag to get the list of available idps.
+- Allow to map the same SAML attribute into several Django field.
+
+0.2.4 (2011-11-29)
+------------------
+- Fix restructured text bugs that made pypi page looks bad.
+
+0.2.3 (2011-06-14)
+------------------
+- Set a unusable password when the user is created for the first time
+
+0.2.2 (2011-06-07)
+------------------
+- Prevent infinite loop when going to the /saml2/login/ endpoint and the user
+  is already logged in and the settings.LOGIN_REDIRECT_URL is (badly) pointing
+  to /saml2/login.
+
+0.2.1 (2011-05-09)
+------------------
+- If no next parameter is supplied to the login view, use the
+  settings.LOGIN_REDIRECT_URL as default
+
+0.2.0 (2011-04-26)
+------------------
+- Python 2.4 compatible if the elementtree library is installed
+- Allow post processing after the authentication phase by using
+  Django signals.
+
+0.1.1 (2011-04-18)
+------------------
+- Simple view to echo SAML attributes
+- Improve documentation
+- Change default behaviour when a new user is created. Now their attributes
+  are filled this first time
+- Allow to set a next page after the logout
+
+0.1.0 (2011-03-16)
+------------------
+- Emancipation from the pysaml package
