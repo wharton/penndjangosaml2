@@ -20,18 +20,25 @@ import urlparse
 
 from django.conf import settings
 from django.contrib.auth import SESSION_KEY
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, AnonymousUser
+from django.core.management import call_command
 from django.core.urlresolvers import reverse
+from django.db.models import loading
+from django.template import Template, Context
 from django.test import TestCase
+from django.test.client import RequestFactory
 
 from saml2.config import SPConfig
 from saml2.s_utils import decode_base64_and_inflate, deflate_and_base64_encode
+from saml2.config import SPConfig
 
 from djangosaml2 import views
+from djangosaml2.backends import Saml2Backend
 from djangosaml2.cache import OutstandingQueriesCache
-import djangosaml2.conf
+from djangosaml2.conf import get_config_loader
 from djangosaml2.tests import conf
 from djangosaml2.tests.auth_response import auth_response
+from djangosaml2.tests.models import TestProfile
 from djangosaml2.signals import post_authenticated
 
 
@@ -68,6 +75,9 @@ class SAML2Tests(TestCase):
         oq_cache.set(session_id, came_from)
         session.save()
         self.client.cookies[settings.SESSION_COOKIE_NAME] = session.session_key
+
+    def render_template(self, text):
+        return Template(text).render(Context())
 
     def test_login_one_idp(self):
         # monkey patch SAML configuration
@@ -150,7 +160,7 @@ class SAML2Tests(TestCase):
         settings.SAML_CONFIG = conf.create_conf(sp_host='sp.example.com',
                                                 idp_hosts=['idp.example.com'])
 
-        config = views.config_settings_loader()
+        config = get_config_loader(views.DEFAULT_CONFIG_LOADER)
         # session_id should start with a letter since it is a NCName
         session_id = "a0123456789abcdef0123456789abcdef"
         came_from = '/another-view/'
@@ -209,7 +219,7 @@ class SAML2Tests(TestCase):
 
     def do_login(self):
         """Auxiliary method used in several tests (mainly logout tests)"""
-        config = views.config_settings_loader()
+        config = get_config_loader(views.DEFAULT_CONFIG_LOADER)
         session_id = "a0123456789abcdef0123456789abcdef"
         came_from = '/another-view/'
         saml_response = auth_response({'uid': 'student'}, session_id, config)
@@ -363,13 +373,109 @@ ID4zT0FcZASGuthM56rRJJSx
 
         post_authenticated.disconnect(dispatch_uid='test_signal')
 
-    def test_conf_loader_setting(self):
-        djangosaml2.conf.settings.DJANGOSAML2_CONF_LOADER = 'djangosaml2.tests.test_conf_loader'
-        ds2config = djangosaml2.conf.config_settings_loader()
-        self.assertEqual(ds2config.entityid, 'http://alt_loader.com/saml2/metadata/')
+    def test_idplist_templatetag(self):
+        settings.SAML_CONFIG = conf.create_conf(sp_host='sp.example.com',
+                                                idp_hosts=['idp1.example.com',
+                                                           'idp2.example.com',
+                                                           'idp3.example.com'])
+        rendered = self.render_template(
+            '{% load idplist %}'
+            '{% idplist as idps %}'
+            '{% for url, name in idps.items %}'
+            '{{ url }} - {{ name }}; '
+            '{% endfor %}'
+            )
+
+        expected = u'https://idp2.example.com/simplesaml/saml2/idp/metadata.php - idp2.example.com IdP; https://idp3.example.com/simplesaml/saml2/idp/metadata.php - idp3.example.com IdP; https://idp1.example.com/simplesaml/saml2/idp/metadata.php - idp1.example.com IdP; '
+
+        self.assertEqual(rendered, expected)
 
 
-def test_conf_loader():
-    sp_conf = SPConfig()
-    sp_conf.load(conf.create_conf(sp_host='alt_loader.com'))
-    return sp_conf
+class Saml2BackendTests(TestCase):
+
+    def setUp(self):
+        # with Django 1.4 we can patch the settings in a much
+        # better way
+        self.old_installed_apps = settings.INSTALLED_APPS
+        settings.INSTALLED_APPS += (
+            'djangosaml2.tests',
+            )
+        # create the database tables for the tests models
+        loading.cache.loaded = False
+        call_command('syncdb', verbosity=0)
+
+        self.old_auth_profile_module = settings.AUTH_PROFILE_MODULE
+        settings.AUTH_PROFILE_MODULE = 'tests.TestProfile'
+
+    def tearDown(self):
+        settings.INSTALLED_APPS = self.old_installed_apps
+        settings.AUTH_PROFILE_MODULE = self.old_auth_profile_module
+
+    def test_update_user(self):
+
+        # we need a user
+        user = User.objects.create(username='john')
+
+        backend = Saml2Backend()
+
+        attribute_mapping = {
+            'uid': ('username', ),
+            'mail': ('email', ),
+            'cn': ('first_name', ),
+            'sn': ('last_name', ),
+            }
+        attributes = {
+            'uid': ('john', ),
+            'mail': ('john@example.com', ),
+            'cn': ('John', ),
+            'sn': ('Doe', ),
+            }
+        backend.update_user(user, attributes, attribute_mapping)
+        self.assertEquals(user.email, 'john@example.com')
+        self.assertEquals(user.first_name, 'John')
+        self.assertEquals(user.last_name, 'Doe')
+
+        # now we create a user profile and link it to the user
+        profile = TestProfile.objects.create(user=user)
+
+        attribute_mapping['saml_age'] = ('age', )
+        attributes['saml_age'] = ('22', )
+        backend.update_user(user, attributes, attribute_mapping)
+
+        self.assertEquals(user.get_profile().age, '22')
+
+
+def test_config_loader(request):
+    config = SPConfig()
+    config.load({'entityid': 'testentity'})
+    return config
+
+
+def test_config_loader_with_real_conf(request):
+    config = SPConfig()
+    config.load(conf.create_conf(sp_host='sp.example.com',
+                                 idp_hosts=['idp.example.com']))
+    return config
+
+
+class ConfTests(TestCase):
+
+    def test_custom_conf_loader(self):
+        config_loader = 'djangosaml2.tests.test_config_loader'
+        request = RequestFactory().get('/bar/foo')
+        conf = get_config_loader(config_loader, request)
+
+        self.assertEquals(conf.entityid, 'testentity')
+
+    def test_custom_conf_loader_from_view(self):
+        config_loader = 'djangosaml2.tests.test_config_loader_with_real_conf'
+        request = RequestFactory().get('/login/')
+        request.user = AnonymousUser()
+        request.session = {}
+        response = views.login(request, config_loader)
+        self.assertEquals(response.status_code, 302)
+        location = response['Location']
+
+        url = urlparse.urlparse(location)
+        self.assertEquals(url.hostname, 'idp.example.com')
+        self.assertEquals(url.path, '/simplesaml/saml2/idp/SSOService.php')

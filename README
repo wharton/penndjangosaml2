@@ -65,6 +65,26 @@ do to make sure it is compatible with your Django version and environment.
   as you run any other Django application test suite. Just type
   ``python manage.py test djangosaml2``
 
+Then you have to add the djangosaml2.backends.Saml2Backend
+authentication backend to the list of authentications backends.
+By default only the ModelBackend included in Django is configured.
+A typical configuration would look like this::
+
+  AUTHENTICATION_BACKENDS = (
+      'django.contrib.auth.backends.ModelBackend',
+      'djangosaml2.backends.Saml2Backend',
+  )
+
+.. note::
+
+  Before djangosaml2 0.5.0 this authentication backend was
+  automatically added by djangosaml2. This turned out to be
+  a bad idea since some applications want to use their own
+  custom policies for authorization and the authentication
+  backend is a good place to define that. Starting from
+  djangosaml2 0.5.0 it is now possible to define such
+  backends.
+
 Finally we have to tell Django what is the new login url we want to use::
 
   LOGIN_URL = '/saml2/login/'
@@ -245,6 +265,22 @@ and decrypt the SAML2 assertions.
   forget to order a real one when you go into production.
 
 
+Custom and dynamic configuration loading
+........................................
+
+By default, djangosaml2 reads the pysaml2 configuration options from the
+SAML_CONFIG setting but sometimes you want to read this information from
+another place, like a file or a database. Sometimes you even want this
+configuration to be different depending on the request.
+
+Starting from djangosaml2 0.5.0 you can define your own configuration
+loader which is a callable that accepts a request parameter and returns
+a saml2.config.SPConfig object. In order to do so you set the following
+setting::
+
+  SAML_CONFIG_LOADER = 'python.path.to.your.callable'
+
+
 User attributes
 ---------------
 
@@ -279,6 +315,16 @@ SAML_ATTRIBUTE_MAPPING option in your settings.py::
 
 where the keys of this dictionary are SAML user attributes and the values
 are Django User attributes.
+
+If you are using Django user profile objects to store extra attributes
+about your user you can add those attributes to the SAML_ATTRIBUTE_MAPPING
+dictionary. For each (key, value) pair, djangosaml2 will try to store the
+attribute in the User model if there is a matching field in that model.
+Otherwise it will try to do the same with your profile custom model.
+
+Learn more about Django profile models at:
+
+https://docs.djangoproject.com/en/dev/topics/auth/#storing-additional-information-about-users
 
 
 IdP setup
