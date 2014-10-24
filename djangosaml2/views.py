@@ -57,7 +57,10 @@ def _set_subject_id(session, subject_id):
 
 
 def _get_subject_id(session):
-    return session['_saml2_subject_id']
+    try:
+        return session['_saml2_subject_id']
+    except KeyError:
+        return None
 
 
 def login(request,
@@ -234,8 +237,14 @@ def logout(request, config_loader_path=None):
     client = Saml2Client(conf, state_cache=state,
                          identity_cache=IdentityCache(request.session))
     subject_id = _get_subject_id(request.session)
+    if subject_id is None:
+        logger.warning(
+            'The session does not contains the subject id for user %s'
+            % request.user)
 
     result = client.global_logout(subject_id)
+
+    state.sync()
 
     if not result:
         logger.error("Looks like the user %s is not logged in any IdP/AA" % subject_id)
@@ -254,7 +263,8 @@ def logout(request, config_loader_path=None):
     return HttpResponseServerError('Logout Binding not supported')
 
 
-def logout_service(request, config_loader_path=None, next_page=None):
+def logout_service(request, config_loader_path=None, next_page=None,
+                   logout_error_template='logout_error.html'):
     """SAML Logout Response endpoint
 
     The IdP will send the logout response to this view,
@@ -289,13 +299,21 @@ def logout_service(request, config_loader_path=None, next_page=None):
     elif 'SAMLRequest' in request.GET:  # logout started by the IdP
         logger.debug('Receiving a logout request from the IdP')
         subject_id = _get_subject_id(request.session)
-        http_info = client.handle_logout_request(
-            request.GET['SAMLRequest'],
-            subject_id,
-            BINDING_HTTP_REDIRECT)
-        state.sync()
-        auth.logout(request)
-        return HttpResponseRedirect(get_location(http_info))
+        if subject_id is None:
+            logger.warning(
+                'The session does not contain the subject id for user %s. Performing local logout'
+                % request.user)
+            auth.logout(request)
+            return render_to_response(logout_error_template, {},
+                                      context_instance=RequestContext(request))
+        else:
+            http_info = client.handle_logout_request(
+                request.GET['SAMLRequest'],
+                subject_id,
+                BINDING_HTTP_REDIRECT)
+            state.sync()
+            auth.logout(request)
+            return HttpResponseRedirect(get_location(http_info))
     else:
         logger.error('No SAMLResponse or SAMLRequest parameter found')
         raise Http404('No SAMLResponse or SAMLRequest parameter found')
