@@ -25,7 +25,7 @@ setup(
     name='djangosaml2-knaperek',
     version='0.14.0',
     description='pysaml2 integration for Django',
-    long_description='\n\n'.join([read('README'), read('CHANGES')]),
+    long_description='\n\n'.join([read('README.rst'), read('CHANGES')]),
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Environment :: Web Environment",
