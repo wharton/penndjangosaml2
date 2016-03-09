@@ -23,7 +23,7 @@ def read(*rnames):
 
 setup(
     name='djangosaml2-knaperek',
-    version='0.14.0',
+    version='0.14.1',
     description='pysaml2 integration for Django',
     long_description='\n\n'.join([read('README.rst'), read('CHANGES')]),
     classifiers=[
@@ -48,7 +48,7 @@ setup(
     include_package_data=True,
     zip_safe=False,
     install_requires=[
-        'pysaml2==4.0.2',
+        'pysaml2==4.0.4',
         'python-memcached==1.48',
         ],
     )
