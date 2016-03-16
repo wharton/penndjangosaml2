@@ -243,7 +243,8 @@ def assertion_consumer_service(request,
     post_authenticated.send_robust(sender=user, session_info=session_info)
 
     # redirect the user to the view where he came from
-    relay_state = request.POST.get('RelayState', '/')
+    default_relay_state = get_custom_setting('ACS_DEFAULT_REDIRECT_URL', '/')
+    relay_state = request.POST.get('RelayState', default_relay_state)
     if not relay_state:
         logger.warning('The RelayState parameter exists but is empty')
         relay_state = settings.LOGIN_REDIRECT_URL
