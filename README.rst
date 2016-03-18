@@ -320,6 +320,13 @@ can set in the settings.py file::
 
 This setting is True by default.
 
+  ACS_DEFAULT_REDIRECT_URL = reverse_lazy('some_url_name')
+
+This setting lets you specify a URL for redirection after a successful
+authentication. Particularly useful when you only plan to use
+IdP initiated login and the IdP does not have a configured RelayState
+parameter. The default is ``/``.
+
 The other thing you will probably want to configure is the mapping of
 SAML2 user attributes to Django user attributes. By default only the
 User.username attribute is mapped but you can add more attributes or
