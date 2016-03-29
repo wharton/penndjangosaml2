@@ -76,28 +76,6 @@ class IdentityCache(Cache):
         self._db = DjangoSessionCacheAdapter(django_session, '_identities')
         self._sync = True
 
-    def get(self, name_id, entity_id, *args, **kwargs):
-        info = super(IdentityCache, self).get(name_id, entity_id, *args, **kwargs)
-        try:
-            name_id = info['name_id']
-        except KeyError:
-            pass
-        else:
-            info = dict(info)
-            info['name_id'] = decode(name_id)
-
-        return info
-
-    def set(self, name_id, entity_id, info, *args, **kwargs):
-        try:
-            name_id = info['name_id']
-        except KeyError:
-            pass
-        else:
-            info = dict(info)
-            info['name_id'] = code(name_id)
-        return super(IdentityCache, self).set(name_id, entity_id, info, *args, **kwargs)
-
 
 class StateCache(DjangoSessionCacheAdapter):
     """Store state information that is needed to associate a logout
