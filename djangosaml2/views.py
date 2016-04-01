@@ -145,7 +145,7 @@ def login(request,
     #
     # Read more in the official SAML2 specs (3.4.4.1):
     # http://docs.oasis-open.org/security/saml/v2.0/saml-bindings-2.0-os.pdf
-    binding = BINDING_HTTP_POST if conf._sp_authn_requests_signed else BINDING_HTTP_REDIRECT
+    binding = BINDING_HTTP_POST if getattr(conf, '_sp_authn_requests_signed', False) else BINDING_HTTP_REDIRECT
 
     client = Saml2Client(conf)
     try:
