@@ -42,6 +42,7 @@ from saml2 import BINDING_HTTP_REDIRECT, BINDING_HTTP_POST
 from saml2.client import Saml2Client
 from saml2.metadata import entity_descriptor
 from saml2.ident import code, decode
+from saml2.sigver import MissingKey
 
 from djangosaml2.cache import IdentityCache, OutstandingQueriesCache
 from djangosaml2.cache import StateCache
@@ -209,9 +210,14 @@ def assertion_consumer_service(request,
     oq_cache = OutstandingQueriesCache(request.session)
     outstanding_queries = oq_cache.outstanding_queries()
 
-    # process the authentication response
-    response = client.parse_authn_request_response(xmlstr, BINDING_HTTP_POST,
-                                                   outstanding_queries)
+    try:
+        response = client.parse_authn_request_response(xmlstr, BINDING_HTTP_POST,
+                                                       outstanding_queries)
+    except MissingKey:
+        logger.error('MissingKey error in ACS')
+        return HttpResponseForbidden(
+            "The Identity Provider is not configured correctly: "
+            "certificate key missing")
     if response is None:
         logger.error('SAML response is None')
         return HttpResponseBadRequest(
