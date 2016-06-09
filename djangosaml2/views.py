@@ -217,7 +217,7 @@ def assertion_consumer_service(request,
         logger.error('MissingKey error in ACS')
         return HttpResponseForbidden(
             "The Identity Provider is not configured correctly: "
-            "certificate key missing")
+            "the certificate key is missing")
     if response is None:
         logger.error('SAML response is None')
         return HttpResponseBadRequest(
