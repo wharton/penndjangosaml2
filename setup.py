@@ -48,7 +48,7 @@ setup(
     url="https://github.com/knaperek/djangosaml2",
     download_url="https://pypi.python.org/pypi/djangosaml2",
     license='Apache 2.0',
-    packages=find_packages(),
+    packages=find_packages(exclude=["tests", "tests.*"]),
     include_package_data=True,
     zip_safe=False,
     install_requires=[
