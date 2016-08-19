@@ -29,7 +29,7 @@ from django.http import HttpResponseRedirect  # 30x
 from django.http import  HttpResponseBadRequest, HttpResponseForbidden  # 40x
 from django.http import HttpResponseServerError  # 50x
 from django.views.decorators.http import require_POST
-from django.shortcuts import render_to_response
+from django.shortcuts import render
 from django.template import RequestContext, TemplateDoesNotExist
 try:
     from django.views.decorators.csrf import csrf_exempt
@@ -113,9 +113,9 @@ def login(request,
             return HttpResponseRedirect(came_from)
         else:
             logger.debug('User is already logged in')
-            return render_to_response(authorization_error_template, {
+            return render(request, authorization_error_template, {
                     'came_from': came_from,
-                    }, context_instance=RequestContext(request))
+                    })
 
     selected_idp = request.GET.get('idp', None)
     conf = get_config(config_loader_path, request)
@@ -124,10 +124,10 @@ def login(request,
     idps = available_idps(conf)
     if selected_idp is None and len(idps) > 1:
         logger.debug('A discovery process is needed')
-        return render_to_response(wayf_template, {
+        return render(request, wayf_template, {
                 'available_idps': idps.items(),
                 'came_from': came_from,
-                }, context_instance=RequestContext(request))
+                })
 
     # Choose binding (REDIRECT vs. POST).
     # When authn_requests_signed is turned on, HTTP Redirect binding cannot be
@@ -170,10 +170,10 @@ def login(request,
             return HttpResponse(result['data'])
         try:
             params = get_hidden_form_inputs(result['data'][3])
-            return render_to_response(post_binding_form_template, {
+            return render(request, post_binding_form_template, {
                     'target_url': result['url'],
                     'params': params,
-                    }, context_instance=RequestContext(request))
+                    })
         except TemplateDoesNotExist:
             return HttpResponse(result['data'])
     else:
@@ -272,8 +272,7 @@ def echo_attributes(request,
     subject_id = _get_subject_id(request.session)
     identity = client.users.get_identity(subject_id,
                                          check_not_on_or_after=False)
-    return render_to_response(template, {'attributes': identity[0]},
-                              context_instance=RequestContext(request))
+    return render(request, template, {'attributes': identity[0]})
 
 
 @login_required
@@ -368,8 +367,7 @@ def do_logout_service(request, data, binding, config_loader_path=None, next_page
                 'The session does not contain the subject id for user %s. Performing local logout',
                 request.user)
             auth.logout(request)
-            return render_to_response(logout_error_template, {},
-                                      context_instance=RequestContext(request))
+            return render(request, logout_error_template, {})
         else:
             http_info = client.handle_logout_request(
                 data['SAMLRequest'],
