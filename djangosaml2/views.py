@@ -30,7 +30,7 @@ from django.http import  HttpResponseBadRequest, HttpResponseForbidden  # 40x
 from django.http import HttpResponseServerError  # 50x
 from django.views.decorators.http import require_POST
 from django.shortcuts import render
-from django.template import RequestContext, TemplateDoesNotExist
+from django.template import TemplateDoesNotExist
 try:
     from django.views.decorators.csrf import csrf_exempt
 except ImportError:
