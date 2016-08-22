@@ -85,6 +85,8 @@ class Saml2Backend(ModelBackend):
 
         django_user_main_attribute = getattr(
             settings, 'SAML_DJANGO_USER_MAIN_ATTRIBUTE', 'username')
+        django_user_main_attribute_lookup = getattr(
+            settings, 'SAML_DJANGO_USER_MAIN_ATTRIBUTE_LOOKUP', '')
 
         logger.debug('attributes: %s', attributes)
         saml_user = None
@@ -112,7 +114,10 @@ class Saml2Backend(ModelBackend):
 
         main_attribute = self.clean_user_main_attribute(saml_user)
 
-        user_query_args = {django_user_main_attribute: main_attribute}
+        user_query_args = {
+                django_user_main_attribute+django_user_main_attribute_lookup:
+                main_attribute}
+        user_create_defaults = {django_user_main_attribute: main_attribute}
 
         # Note that this could be accomplished in one try-except clause, but
         # instead we use get_or_create when creating unknown users since it has
@@ -122,7 +127,8 @@ class Saml2Backend(ModelBackend):
             logger.debug('Check if the user "%s" exists or create otherwise',
                          main_attribute)
             try:
-                user, created = User.objects.get_or_create(**user_query_args)
+                user, created = User.objects.get_or_create(
+                        defaults=user_create_defaults, **user_query_args)
             except MultipleObjectsReturned:
                 logger.error("There are more than one user with %s = %s",
                              django_user_main_attribute, main_attribute)

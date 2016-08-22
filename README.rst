@@ -307,6 +307,14 @@ Please, use an unique attribute when setting this option. Otherwise
 the authentication process will fail because djangosaml2 does not know
 which Django user it should pick.
 
+If your main attribute is something inherently case-inensitive (such as
+an email address), you may set::
+
+  SAML_DJANGO_USER_MAIN_ATTRIBUTE_LOOKUP = '__iexact'
+
+(This is simply appended to the main attribute name to form a Django
+query. Your main attribute must be unique even given this lookup.)
+
 Another option is to use the SAML2 name id as the username by setting::
 
   SAML_USE_NAME_ID_AS_USERNAME = True
