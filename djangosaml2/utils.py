@@ -52,7 +52,7 @@ def get_hidden_form_inputs(html):
     """ Extracts name/value pairs from hidden input tags in an html form."""
     pairs = dict()
     tree = ElementTree.fromstring(html)
-    for node in tree.iter():
+    for node in tree.getiterator():
         if node.tag == 'input':
             element = dict(node.items())
             if element['type'] == 'hidden':
