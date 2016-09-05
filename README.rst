@@ -209,9 +209,15 @@ We will see a typical configuration for protecting a Django project::
     # set to 1 to output debugging information
     'debug': 1,
 
-    # certificate
+    # Signing
     'key_file': path.join(BASEDIR, 'mycert.key'),  # private part
     'cert_file': path.join(BASEDIR, 'mycert.pem'),  # public part
+    
+    # Encryption
+    'encryption_keypairs': [{
+        'key_file': path.join(BASEDIR, 'my_encryption_key.key'),  # private part
+        'cert_file': path.join(BASEDIR, 'my_encryption_cert.pem'),  # public part
+    }],
 
     # own metadata settings
     'contact_person': [
