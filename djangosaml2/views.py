@@ -24,6 +24,7 @@ from django.conf import settings
 from django.contrib import auth
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import logout as django_logout
+from django.core.exceptions import PermissionDenied
 from django.http import Http404, HttpResponse
 from django.http import HttpResponseRedirect  # 30x
 from django.http import  HttpResponseBadRequest, HttpResponseForbidden  # 40x
@@ -240,7 +241,7 @@ def assertion_consumer_service(request,
                              create_unknown_user=create_unknown_user)
     if user is None:
         logger.error('The user is None')
-        return HttpResponseForbidden("Permission denied")
+        raise PermissionDenied
 
     auth.login(request, user)
     _set_subject_id(request.session, session_info['name_id'])
