@@ -372,7 +372,8 @@ def do_logout_service(request, data, binding, config_loader_path=None, next_page
             http_info = client.handle_logout_request(
                 data['SAMLRequest'],
                 subject_id,
-                binding)
+                binding,
+                relay_state=data.get('RelayState', ''))
             state.sync()
             auth.logout(request)
             return HttpResponseRedirect(get_location(http_info))
