@@ -207,8 +207,15 @@ class Saml2Backend(ModelBackend):
             try:
                 for attr in django_attrs:
                     if hasattr(user, attr):
-                        modified = self._set_attribute(
-                            user, attr, attributes[saml_attr][0])
+
+                        user_attr = getattr(user, attr)
+                        if callable(user_attr):
+                            modified = user_attr(
+                                    attributes[saml_attr])
+                        else:
+                            modified = self._set_attribute(
+                                    user, attr, attributes[saml_attr][0])
+
                         user_modified = user_modified or modified
 
                     elif profile is not None and hasattr(profile, attr):
