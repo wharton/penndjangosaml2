@@ -19,6 +19,8 @@ try:
     from xml.etree import ElementTree
 except ImportError:
     from elementtree import ElementTree
+from defusedxml.common import (DTDForbidden, EntitiesForbidden,
+                               ExternalReferenceForbidden)
 
 from django.conf import settings
 from django.contrib import auth
@@ -175,6 +177,8 @@ def login(request,
                     'target_url': result['url'],
                     'params': params,
                     })
+        except (DTDForbidden, EntitiesForbidden, ExternalReferenceForbidden):
+            raise PermissionDenied
         except TemplateDoesNotExist:
             return HttpResponse(result['data'])
     else:
