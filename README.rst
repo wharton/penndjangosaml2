@@ -371,7 +371,7 @@ passing the full list of attribute values extracted from the <saml:AttributeValu
 elements of the <saml:Attribute>. Among other uses, this is a useful way to process
 multi-valued attributes such as lists of user group names.
 
-For example ::
+For example::
 
 Saml assertion snippet::
 
