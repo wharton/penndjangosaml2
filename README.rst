@@ -361,7 +361,42 @@ If you are using Django user profile objects to store extra attributes
 about your user you can add those attributes to the SAML_ATTRIBUTE_MAPPING
 dictionary. For each (key, value) pair, djangosaml2 will try to store the
 attribute in the User model if there is a matching field in that model.
-Otherwise it will try to do the same with your profile custom model.
+Otherwise it will try to do the same with your profile custom model. For 
+multi-valued attributes only the first value is assigned to the destination field.
+
+Alternatively, custom processing of attributes can be achieved by setting the
+value(s) in the SAML_ATTRIBUTE_MAPPING, to name(s) of method(s) defined on a
+custom django User object. In this case, each method is called by djangosaml2,
+passing the full list of attribute values extracted from the <saml:AttributeValue>
+elements of the <saml:Attribute>. Among other uses, this is a useful way to process
+multi-valued attributes such as lists of user group names.
+
+For example::
+
+Saml assertion snippet::
+
+  <saml:Attribute Name="groups" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:basic">
+        <saml:AttributeValue>group1</saml:AttributeValue>
+        <saml:AttributeValue>group2</saml:AttributeValue>
+        <saml:AttributeValue>group3</saml:AttributeValue>
+  </saml:Attribute>
+
+Custom User object::
+
+  from django.contrib.auth.models import AbstractUser
+
+  class User(AbstractUser):
+
+    def process_groups(self, groups):
+      // process list of group names in argument 'groups' 
+      pass;
+
+settings.py::
+
+  SAML_ATTRIBUTE_MAPPING = {
+      'groups': ('process_groups', ),
+  }
+
 
 Learn more about Django profile models at:
 
