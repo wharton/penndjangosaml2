@@ -366,7 +366,7 @@ multi-valued attributes only the first value is assigned to the destination fiel
 
 Alternatively, custom processing of attributes can be achieved by setting the
 value(s) in the SAML_ATTRIBUTE_MAPPING, to name(s) of method(s) defined on a
-custom django User object. In this case, the function is called by djangosaml2,
+custom django User object. In this case, each method is called by djangosaml2,
 passing the full list of attribute values extracted from the <saml:AttributeValue>
 elements of the <saml:Attribute>. Among other uses, this is a useful way to process
 multi-valued attributes such as lists of user group names.
