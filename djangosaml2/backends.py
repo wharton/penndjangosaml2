@@ -23,6 +23,8 @@ from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned, 
 
 from djangosaml2.signals import pre_user_save
 
+from . import settings as saml_settings
+
 try:
     from django.contrib.auth.models import SiteProfileNotAvailable
 except ImportError:
@@ -83,10 +85,8 @@ class Saml2Backend(ModelBackend):
         use_name_id_as_username = getattr(
             settings, 'SAML_USE_NAME_ID_AS_USERNAME', False)
 
-        django_user_main_attribute = getattr(
-            settings, 'SAML_DJANGO_USER_MAIN_ATTRIBUTE', 'username')
-        django_user_main_attribute_lookup = getattr(
-            settings, 'SAML_DJANGO_USER_MAIN_ATTRIBUTE_LOOKUP', '')
+        django_user_main_attribute = saml_settings.SAML_DJANGO_USER_MAIN_ATTRIBUTE
+        django_user_main_attribute_lookup = saml_settings.SAML_DJANGO_USER_MAIN_ATTRIBUTE_LOOKUP
 
         logger.debug('attributes: %s', attributes)
         saml_user = None
@@ -97,11 +97,7 @@ class Saml2Backend(ModelBackend):
             else:
                 logger.error('The nameid is not available. Cannot find user without a nameid.')
         else:
-            logger.debug('attribute_mapping: %s', attribute_mapping)
-            for saml_attr, django_fields in attribute_mapping.items():
-                if (django_user_main_attribute in django_fields
-                    and saml_attr in attributes):
-                    saml_user = attributes[saml_attr][0]
+            saml_user = self.get_attribute_value(django_user_main_attribute, attributes, attribute_mapping)
 
         if saml_user is None:
             logger.error('Could not find saml_user value')
@@ -110,50 +106,21 @@ class Saml2Backend(ModelBackend):
         if not self.is_authorized(attributes, attribute_mapping):
             return None
 
-        user = None
-
         main_attribute = self.clean_user_main_attribute(saml_user)
-
-        user_query_args = {
-                django_user_main_attribute+django_user_main_attribute_lookup:
-                main_attribute}
-        user_create_defaults = {django_user_main_attribute: main_attribute}
 
         # Note that this could be accomplished in one try-except clause, but
         # instead we use get_or_create when creating unknown users since it has
         # built-in safeguards for multiple threads.
-        User = get_saml_user_model()
-        if create_unknown_user:
-            logger.debug('Check if the user "%s" exists or create otherwise',
-                         main_attribute)
-            try:
-                user, created = User.objects.get_or_create(
-                        defaults=user_create_defaults, **user_query_args)
-            except MultipleObjectsReturned:
-                logger.error("There are more than one user with %s = %s",
-                             django_user_main_attribute, main_attribute)
-                return None
+        return self.get_saml2_user(
+            create_unknown_user, main_attribute, attributes, attribute_mapping)
 
-            if created:
-                logger.debug('New user created')
-                user = self.configure_user(user, attributes, attribute_mapping)
-            else:
-                logger.debug('User updated')
-                user = self.update_user(user, attributes, attribute_mapping)
-        else:
-            logger.debug('Retrieving existing user "%s"', main_attribute)
-            try:
-                user = User.objects.get(**user_query_args)
-                user = self.update_user(user, attributes, attribute_mapping)
-            except User.DoesNotExist:
-                logger.error('The user "%s" does not exist', main_attribute)
-                return None
-            except MultipleObjectsReturned:
-                logger.error("There are more than one user with %s = %s",
-                             django_user_main_attribute, main_attribute)
-                return None
-
-        return user
+    def get_attribute_value(self, django_field, attributes, attribute_mapping):
+        saml_user = None
+        logger.debug('attribute_mapping: %s', attribute_mapping)
+        for saml_attr, django_fields in attribute_mapping.items():
+            if django_field in django_fields and saml_attr in attributes:
+                saml_user = attributes[saml_attr][0]
+        return saml_user
 
     def is_authorized(self, attributes, attribute_mapping):
         """Hook to allow custom authorization policies based on
@@ -169,6 +136,65 @@ class Saml2Backend(ModelBackend):
         By default, returns the attribute unchanged.
         """
         return main_attribute
+
+    def get_user_query_args(self, main_attribute):
+        django_user_main_attribute = getattr(
+            settings, 'SAML_DJANGO_USER_MAIN_ATTRIBUTE', 'username')
+        django_user_main_attribute_lookup = getattr(
+            settings, 'SAML_DJANGO_USER_MAIN_ATTRIBUTE_LOOKUP', '')
+
+        return {
+            django_user_main_attribute + django_user_main_attribute_lookup: main_attribute
+        }
+
+    def get_saml2_user(self, create, main_attribute, attributes, attribute_mapping):
+        if create:
+            return self._get_or_create_saml2_user(main_attribute, attributes, attribute_mapping)
+
+        return self._get_saml2_user(main_attribute, attributes, attribute_mapping)
+
+    def _get_or_create_saml2_user(self, main_attribute, attributes, attribute_mapping):
+        logger.debug('Check if the user "%s" exists or create otherwise',
+                     main_attribute)
+        django_user_main_attribute = saml_settings.SAML_DJANGO_USER_MAIN_ATTRIBUTE
+        django_user_main_attribute_lookup = saml_settings.SAML_DJANGO_USER_MAIN_ATTRIBUTE_LOOKUP
+        user_query_args = self.get_user_query_args(main_attribute)
+        user_create_defaults = {django_user_main_attribute: main_attribute}
+
+        User = get_saml_user_model()
+        try:
+            user, created = User.objects.get_or_create(
+                defaults=user_create_defaults, **user_query_args)
+        except MultipleObjectsReturned:
+            logger.error("There are more than one user with %s = %s",
+                         django_user_main_attribute, main_attribute)
+            return None
+
+        if created:
+            logger.debug('New user created')
+            user = self.configure_user(user, attributes, attribute_mapping)
+        else:
+            logger.debug('User updated')
+            user = self.update_user(user, attributes, attribute_mapping)
+        return user
+
+    def _get_saml2_user(self, main_attribute, attributes, attribute_mapping):
+        User = get_saml_user_model()
+        django_user_main_attribute = saml_settings.SAML_DJANGO_USER_MAIN_ATTRIBUTE
+        user_query_args = self.get_user_query_args(main_attribute)
+
+        logger.debug('Retrieving existing user "%s"', main_attribute)
+        try:
+            user = User.objects.get(**user_query_args)
+            user = self.update_user(user, attributes, attribute_mapping)
+        except User.DoesNotExist:
+            logger.error('The user "%s" does not exist', main_attribute)
+            return None
+        except MultipleObjectsReturned:
+            logger.error("There are more than one user with %s = %s",
+                         django_user_main_attribute, main_attribute)
+            return None
+        return user
 
     def configure_user(self, user, attributes, attribute_mapping):
         """Configures a user after creation and returns the updated user.
@@ -207,15 +233,8 @@ class Saml2Backend(ModelBackend):
             try:
                 for attr in django_attrs:
                     if hasattr(user, attr):
-
-                        user_attr = getattr(user, attr)
-                        if callable(user_attr):
-                            modified = user_attr(
-                                    attributes[saml_attr])
-                        else:
-                            modified = self._set_attribute(
-                                    user, attr, attributes[saml_attr][0])
-
+                        modified = self._set_attribute(
+                            user, attr, attributes[saml_attr][0])
                         user_modified = user_modified or modified
 
                     elif profile is not None and hasattr(profile, attr):
