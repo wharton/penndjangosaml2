@@ -21,8 +21,9 @@ import urlparse
 import sys
 
 from django.conf import settings
-from django.contrib.auth import SESSION_KEY
+from django.contrib.auth import SESSION_KEY, get_user_model
 from django.contrib.auth.models import User, AnonymousUser
+from django.contrib.sessions.middleware import SessionMiddleware
 from django.core.urlresolvers import reverse
 from django.template import Template, Context
 from django.test import TestCase
@@ -38,6 +39,7 @@ from djangosaml2.tests import conf
 from djangosaml2.tests.auth_response import auth_response
 from djangosaml2.signals import post_authenticated
 
+User = get_user_model()
 
 PY_VERSION = sys.version_info[:2]
 
@@ -110,7 +112,7 @@ class SAML2Tests(TestCase):
             metadata_file='remote_metadata_one_idp.xml',
         )
 
-        response = self.client.get('/login/')
+        response = self.client.get(reverse('saml2_login'))
         self.assertEquals(response.status_code, 302)
         location = response['Location']
 
@@ -135,7 +137,7 @@ class SAML2Tests(TestCase):
         # if we set a next arg in the login view, it is preserverd
         # in the RelayState argument
         next = '/another-view/'
-        response = self.client.get('/login/', {'next': next})
+        response = self.client.get(reverse('saml2_login'), {'next': next})
         self.assertEquals(response.status_code, 302)
         location = response['Location']
 
@@ -156,8 +158,7 @@ class SAML2Tests(TestCase):
                        'idp3.example.com'],
             metadata_file='remote_metadata_three_idps.xml',
         )
-
-        response = self.client.get('/login/')
+        response = self.client.get(reverse('saml2_login'))
         # a WAYF page should be displayed
         self.assertContains(response, 'Where are you from?', status_code=200)
         for i in range(1, 4):
@@ -165,7 +166,7 @@ class SAML2Tests(TestCase):
             self.assertContains(response, link % i)
 
         # click on the second idp
-        response = self.client.get('/login/', {
+        response = self.client.get(reverse('saml2_login'), {
                 'idp': 'https://idp2.example.com/simplesaml/saml2/idp/metadata.php',
                 'next': '/',
                 })
@@ -208,15 +209,13 @@ class SAML2Tests(TestCase):
 
         # this will create a user
         saml_response = auth_response(session_id, 'student')
-        response = self.client.post('/acs/', {
+        response = self.client.post(reverse('saml2_acs'), {
                 'SAMLResponse': base64.b64encode(saml_response),
                 'RelayState': came_from,
                 })
         self.assertEquals(response.status_code, 302)
         location = response['Location']
-
         url = urlparse.urlparse(location)
-        self.assertEquals(url.hostname, 'testserver')
         self.assertEquals(url.path, came_from)
 
         self.assertEquals(User.objects.count(), initial_user_count + 1)
@@ -231,7 +230,7 @@ class SAML2Tests(TestCase):
         came_from = ''  # bad, let's see if we can deal with this
         saml_response = auth_response(session_id, 'teacher')
         self.add_outstanding_query(session_id, '/')
-        response = self.client.post('/acs/', {
+        response = self.client.post(reverse('saml2_acs'), {
                 'SAMLResponse': base64.b64encode(saml_response),
                 'RelayState': came_from,
                 })
@@ -239,10 +238,9 @@ class SAML2Tests(TestCase):
         location = response['Location']
 
         url = urlparse.urlparse(location)
-        self.assertEquals(url.hostname, 'testserver')
         # as the RelayState is empty we have redirect to LOGIN_REDIRECT_URL
         self.assertEquals(url.path, '/accounts/profile/')
-        self.assertEquals(new_user.id, self.client.session[SESSION_KEY])
+        self.assertEquals(str(new_user.id), self.client.session[SESSION_KEY])
 
     def test_missing_param_to_assertion_consumer_service_request(self):
         # Send request without SAML2Response parameter
@@ -267,7 +265,7 @@ class SAML2Tests(TestCase):
         saml_response = auth_response(session_id, 'student')
 
         # this will create a user
-        response = self.client.post('/acs/', {
+        response = self.client.post(reverse('saml2_acs'), {
                 'SAMLResponse': base64.b64encode(saml_response),
                 'RelayState': came_from,
                 })
@@ -281,7 +279,7 @@ class SAML2Tests(TestCase):
         )
         self.do_login()
 
-        response = self.client.get('/logout/')
+        response = self.client.get(reverse('saml2_logout'))
         self.assertEquals(response.status_code, 302)
         location = response['Location']
 
@@ -297,7 +295,7 @@ class SAML2Tests(TestCase):
         expected_request26 = """<?xml version='1.0' encoding='UTF-8'?>
 <samlp:LogoutRequest Destination="https://idp.example.com/simplesaml/saml2/idp/SingleLogoutService.php" ID="XXXXXXXXXXXXXXXXXXXXXX" IssueInstant="2010-01-01T00:00:00Z" Reason="" Version="2.0" xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol"><saml:Issuer Format="urn:oasis:names:tc:SAML:2.0:nameid-format:entity" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion">http://sp.example.com/saml2/metadata/</saml:Issuer><saml:NameID Format="urn:oasis:names:tc:SAML:2.0:nameid-format:transient" SPNameQualifier="http://sp.example.com/saml2/metadata/" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion">58bcc81ea14700f66aeb707a0eff1360</saml:NameID></samlp:LogoutRequest>"""
         expected_request27 = """<?xml version='1.0' encoding='UTF-8'?>
-<samlp:LogoutRequest xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" Destination="https://idp.example.com/simplesaml/saml2/idp/SingleLogoutService.php" ID="XXXXXXXXXXXXXXXXXXXXXX" IssueInstant="2010-01-01T00:00:00Z" Reason="" Version="2.0"><saml:Issuer Format="urn:oasis:names:tc:SAML:2.0:nameid-format:entity">http://sp.example.com/saml2/metadata/</saml:Issuer><saml:NameID Format="urn:oasis:names:tc:SAML:2.0:nameid-format:transient" SPNameQualifier="http://sp.example.com/saml2/metadata/">58bcc81ea14700f66aeb707a0eff1360</saml:NameID></samlp:LogoutRequest>"""
+<samlp:LogoutRequest xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" Destination="https://idp.example.com/simplesaml/saml2/idp/SingleLogoutService.php" ID="XXXXXXXXXXXXXXXXXXXXXX" IssueInstant="2010-01-01T00:00:00Z" Reason="" Version="2.0"><saml:Issuer Format="urn:oasis:names:tc:SAML:2.0:nameid-format:entity">http://sp.example.com/saml2/metadata/</saml:Issuer><saml:NameID Format="urn:oasis:names:tc:SAML:2.0:nameid-format:transient" SPNameQualifier="http://sp.example.com/saml2/metadata/">58bcc81ea14700f66aeb707a0eff1360</saml:NameID><samlp:SessionIndex>a0123456789abcdef0123456789abcdef</samlp:SessionIndex></samlp:LogoutRequest>"""
         self.assertSAMLRequestsEquals(decode_base64_and_inflate(saml_request),
                                       {'2.6': expected_request26,
                                        '2.7': expected_request27})
@@ -311,7 +309,7 @@ class SAML2Tests(TestCase):
 
         self.do_login()
 
-        response = self.client.get('/logout/')
+        response = self.client.get(reverse('saml2_logout'))
         self.assertEquals(response.status_code, 302)
         location = response['Location']
 
@@ -327,7 +325,7 @@ class SAML2Tests(TestCase):
         expected_request26 = """<?xml version='1.0' encoding='UTF-8'?>
 <samlp:LogoutRequest Destination="https://idp.example.com/simplesaml/saml2/idp/SingleLogoutService.php" ID="XXXXXXXXXXXXXXXXXXXXXX" IssueInstant="2010-01-01T00:00:00Z" Reason="" Version="2.0" xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol"><saml:Issuer Format="urn:oasis:names:tc:SAML:2.0:nameid-format:entity" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion">http://sp.example.com/saml2/metadata/</saml:Issuer><saml:NameID Format="urn:oasis:names:tc:SAML:2.0:nameid-format:transient" SPNameQualifier="http://sp.example.com/saml2/metadata/" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion">58bcc81ea14700f66aeb707a0eff1360</saml:NameID></samlp:LogoutRequest>"""
         expected_request27 = """<?xml version='1.0' encoding='UTF-8'?>
-<samlp:LogoutRequest xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" Destination="https://idp.example.com/simplesaml/saml2/idp/SingleLogoutService.php" ID="XXXXXXXXXXXXXXXXXXXXXX" IssueInstant="2010-01-01T00:00:00Z" Reason="" Version="2.0"><saml:Issuer Format="urn:oasis:names:tc:SAML:2.0:nameid-format:entity">http://sp.example.com/saml2/metadata/</saml:Issuer><saml:NameID Format="urn:oasis:names:tc:SAML:2.0:nameid-format:transient" SPNameQualifier="http://sp.example.com/saml2/metadata/">58bcc81ea14700f66aeb707a0eff1360</saml:NameID></samlp:LogoutRequest>"""
+<samlp:LogoutRequest xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" Destination="https://idp.example.com/simplesaml/saml2/idp/SingleLogoutService.php" ID="XXXXXXXXXXXXXXXXXXXXXX" IssueInstant="2010-01-01T00:00:00Z" Reason="" Version="2.0"><saml:Issuer Format="urn:oasis:names:tc:SAML:2.0:nameid-format:entity">http://sp.example.com/saml2/metadata/</saml:Issuer><saml:NameID Format="urn:oasis:names:tc:SAML:2.0:nameid-format:transient" SPNameQualifier="http://sp.example.com/saml2/metadata/">58bcc81ea14700f66aeb707a0eff1360</saml:NameID><samlp:SessionIndex>a0123456789abcdef0123456789abcdef</samlp:SessionIndex></samlp:LogoutRequest>"""
         xml = decode_base64_and_inflate(saml_request)
         self.assertSAMLRequestsEquals(xml,
                                       {'2.6': expected_request26,
@@ -341,7 +339,7 @@ class SAML2Tests(TestCase):
 <samlp:LogoutResponse xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" Destination="http://sp.example.com/saml2/ls/" ID="a140848e7ce2bce834d7264ecdde0151" InResponseTo="%s" IssueInstant="%s" Version="2.0"><saml:Issuer Format="urn:oasis:names:tc:SAML:2.0:nameid-format:entity">https://idp.example.com/simplesaml/saml2/idp/metadata.php</saml:Issuer><samlp:Status><samlp:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Success" /></samlp:Status></samlp:LogoutResponse>""" % (
             request_id, instant)
 
-        response = self.client.get('/ls/', {
+        response = self.client.get(reverse('saml2_ls'), {
                 'SAMLResponse': deflate_and_base64_encode(saml_response),
                 })
         self.assertContains(response, "Logged out", status_code=200)
@@ -362,7 +360,7 @@ class SAML2Tests(TestCase):
         saml_request = """<?xml version='1.0' encoding='UTF-8'?>
 <samlp:LogoutRequest xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" ID="_9961abbaae6d06d251226cb25e38bf8f468036e57e" Version="2.0" IssueInstant="%s" Destination="http://sp.example.com/saml2/ls/"><saml:Issuer>https://idp.example.com/simplesaml/saml2/idp/metadata.php</saml:Issuer><saml:NameID SPNameQualifier="http://sp.example.com/saml2/metadata/" Format="urn:oasis:names:tc:SAML:2.0:nameid-format:transient">%s</saml:NameID><samlp:SessionIndex>_1837687b7bc9faad85839dbeb319627889f3021757</samlp:SessionIndex></samlp:LogoutRequest>""" % (instant, subject_id.text)
 
-        response = self.client.get('/ls/', {
+        response = self.client.get(reverse('saml2_ls'), {
                 'SAMLRequest': deflate_and_base64_encode(saml_request),
                 })
         self.assertEquals(response.status_code, 302)
@@ -396,7 +394,7 @@ class SAML2Tests(TestCase):
         saml_request = '<samlp:LogoutRequest xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" ID="_9961abbaae6d06d251226cb25e38bf8f468036e57e" Version="2.0" IssueInstant="%s" Destination="http://sp.example.com/saml2/ls/"><saml:Issuer>https://idp.example.com/simplesaml/saml2/idp/metadata.php</saml:Issuer><saml:NameID SPNameQualifier="http://sp.example.com/saml2/metadata/" Format="urn:oasis:names:tc:SAML:2.0:nameid-format:transient">%s</saml:NameID><samlp:SessionIndex>_1837687b7bc9faad85839dbeb319627889f3021757</samlp:SessionIndex></samlp:LogoutRequest>' % (
             instant, 'invalid-subject-id')
 
-        response = self.client.get('/ls/', {
+        response = self.client.get(reverse('saml2_ls'), {
                 'SAMLRequest': deflate_and_base64_encode(saml_request),
                 })
         self.assertContains(response, 'Logout error', status_code=200)
@@ -547,7 +545,9 @@ class ConfTests(TestCase):
         config_loader_path = 'djangosaml2.tests.test_config_loader_with_real_conf'
         request = RequestFactory().get('/login/')
         request.user = AnonymousUser()
-        request.session = {}
+        middleware = SessionMiddleware()
+        middleware.process_request(request)
+        request.session.save()
         response = views.login(request, config_loader_path)
         self.assertEquals(response.status_code, 302)
         location = response['Location']
