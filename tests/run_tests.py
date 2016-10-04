@@ -14,16 +14,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 import os
+import sys
 
-os.environ['DJANGO_SETTINGS_MODULE'] = 'tests.settings'
-
+from django.core.wsgi import get_wsgi_application
 from django.core import management
-import django
 
-if hasattr(django, 'setup'):
-    django.setup()
+PROJECT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir))
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "tests.settings")
+sys.path.append(PROJECT_DIR)
+# Load models
+application = get_wsgi_application()
 
-management.call_command('test', 'djangosaml2', 'testprofiles')
-
+management.call_command('test', 'djangosaml2.tests', 'testprofiles')
