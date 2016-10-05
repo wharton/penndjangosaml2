@@ -1,9 +1,10 @@
 ===========
 djangosaml2
 ===========
+
 .. image:: https://travis-ci.org/knaperek/djangosaml2.svg?branch=master
     :target: https://travis-ci.org/knaperek/djangosaml2
-    :alighn: left
+    :align: left
 
 
 djangosaml2 is a Django application that integrates the PySAML2 library
