@@ -17,6 +17,10 @@ matrix:
       - env: TOX_ENV=py27-dj19
       - env: TOX_ENV=py27-dj110
 
+before_install:
+  - sudo apt-get -qq update
+  - sudo apt-get install -y xmlsec1
+
 install:
     - pip install tox virtualenv
 
