@@ -1,8 +1,10 @@
-.. contents::
-
 ===========
 djangosaml2
 ===========
+.. image:: https://travis-ci.org/knaperek/djangosaml2.svg?branch=master
+    :target: https://travis-ci.org/knaperek/djangosaml2
+    :alighn: left
+
 
 djangosaml2 is a Django application that integrates the PySAML2 library
 into your project. This mean that you can protect your Django based project
@@ -11,6 +13,7 @@ your Identity Provider allowing you to use this authentication mechanism.
 This document will guide you through a few simple steps to accomplish
 such goal.
 
+.. contents::
 
 Installation
 ============
