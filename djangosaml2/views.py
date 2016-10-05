@@ -34,6 +34,7 @@ from django.http import HttpResponseServerError  # 50x
 from django.views.decorators.http import require_POST
 from django.shortcuts import render
 from django.template import TemplateDoesNotExist
+from django.utils.http import is_safe_url
 try:
     from django.views.decorators.csrf import csrf_exempt
 except ImportError:
@@ -94,6 +95,10 @@ def login(request,
     came_from = request.GET.get('next', settings.LOGIN_REDIRECT_URL)
     if not came_from:
         logger.warning('The next parameter exists but is empty')
+        came_from = settings.LOGIN_REDIRECT_URL
+
+    # Ensure the user-originating redirection url is safe.
+    if not is_safe_url(url=came_from, host=request.get_host()):
         came_from = settings.LOGIN_REDIRECT_URL
 
     # if the user is already authenticated that maybe because of two reasons:
@@ -260,6 +265,8 @@ def assertion_consumer_service(request,
     if not relay_state:
         logger.warning('The RelayState parameter exists but is empty')
         relay_state = default_relay_state
+    if not is_safe_url(url=relay_state, host=request.get_host()):
+        came_from = settings.LOGIN_REDIRECT_URL
     logger.debug('Redirecting to the RelayState: %s', relay_state)
     return HttpResponseRedirect(relay_state)
 

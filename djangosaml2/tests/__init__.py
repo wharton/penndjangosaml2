@@ -102,6 +102,24 @@ class SAML2Tests(TestCase):
     def render_template(self, text):
         return Template(text).render(Context())
 
+    def test_login_evil_redirect(self):
+        """
+        Make sure that if we give an URL other than our own host as the next
+        parameter, it is replaced with the default LOGIN_REDIRECT_URL.
+        """
+
+        # monkey patch SAML configuration
+        settings.SAML_CONFIG = conf.create_conf(
+            sp_host='sp.example.com',
+            idp_hosts=['idp.example.com'],
+            metadata_file='remote_metadata_one_idp.xml',
+        )
+        response = self.client.get(reverse('saml2_login') + '?next=http://evil.com')
+        url = urlparse.urlparse(response['Location'])
+        params = urlparse.parse_qs(url.query)
+
+        self.assertEquals(params['RelayState'], [settings.LOGIN_REDIRECT_URL, ])
+
     def test_login_one_idp(self):
         # monkey patch SAML configuration
         settings.SAML_CONFIG = conf.create_conf(
