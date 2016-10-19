@@ -47,6 +47,7 @@ from saml2.client import Saml2Client
 from saml2.metadata import entity_descriptor
 from saml2.ident import code, decode
 from saml2.sigver import MissingKey
+from saml2.response import StatusError
 
 from djangosaml2.cache import IdentityCache, OutstandingQueriesCache
 from djangosaml2.cache import StateCache
@@ -223,6 +224,9 @@ def assertion_consumer_service(request,
     try:
         response = client.parse_authn_request_response(xmlstr, BINDING_HTTP_POST,
                                                        outstanding_queries)
+    except StatusError:
+        return render(request, 'djangosaml2/login_error.html', status=403)
+
     except MissingKey:
         logger.error('MissingKey error in ACS')
         return HttpResponseForbidden(
@@ -250,7 +254,7 @@ def assertion_consumer_service(request,
                              create_unknown_user=create_unknown_user)
     if user is None:
         logger.error('The user is None')
-        raise PermissionDenied
+        return render(request, 'djangosaml2/permission_denied.html', status=403)
 
     auth.login(request, user)
     _set_subject_id(request.session, session_info['name_id'])
