@@ -39,6 +39,7 @@ from djangosaml2.conf import get_config
 from djangosaml2.tests import conf
 from djangosaml2.tests.auth_response import auth_response
 from djangosaml2.signals import post_authenticated
+from djangosaml2.views import finish_logout
 
 User = get_user_model()
 
@@ -419,6 +420,11 @@ class SAML2Tests(TestCase):
                 'SAMLRequest': deflate_and_base64_encode(saml_request),
                 })
         self.assertContains(response, 'Logout error', status_code=200)
+
+    def test_finish_logout_renders_error_template(self):
+        request = RequestFactory().get('/bar/foo')
+        response = finish_logout(request, None)
+        self.assertContains(response, "<h1>Logout error</h1>", status_code=200)
 
     def _test_metadata(self):
         settings.SAML_CONFIG = conf.create_conf(
