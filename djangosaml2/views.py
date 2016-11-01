@@ -403,7 +403,7 @@ def finish_logout(request, response, next_page=None):
         return django_logout(request, next_page=next_page)
     else:
         logger.error('Unknown error during the logout')
-        return HttpResponse('Error during logout')
+        return render(request, "djangosaml2/logout_error.html", {})
 
 
 def metadata(request, config_loader_path=None, valid_for=None):
