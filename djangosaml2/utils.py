@@ -51,7 +51,7 @@ def get_location(http_info):
 def get_hidden_form_inputs(html):
     """ Extracts name/value pairs from hidden input tags in an html form."""
     pairs = dict()
-    tree = ElementTree.fromstring(html, forbid_dtd=True)
+    tree = ElementTree.fromstring(html.replace('&', '&amp;'), forbid_dtd=True)
     # python 2.6 doesn't have iter
     if hasattr(tree, 'iter'):
         node_iter = tree.iter()
