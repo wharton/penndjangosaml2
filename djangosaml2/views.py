@@ -19,18 +19,22 @@ try:
     from xml.etree import ElementTree
 except ImportError:
     from elementtree import ElementTree
+from defusedxml.common import (DTDForbidden, EntitiesForbidden,
+                               ExternalReferenceForbidden)
 
 from django.conf import settings
 from django.contrib import auth
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import logout as django_logout
+from django.core.exceptions import PermissionDenied
 from django.http import Http404, HttpResponse
 from django.http import HttpResponseRedirect  # 30x
 from django.http import  HttpResponseBadRequest, HttpResponseForbidden  # 40x
 from django.http import HttpResponseServerError  # 50x
 from django.views.decorators.http import require_POST
-from django.shortcuts import render_to_response
-from django.template import RequestContext, TemplateDoesNotExist
+from django.shortcuts import render
+from django.template import TemplateDoesNotExist
+from django.utils.http import is_safe_url
 try:
     from django.views.decorators.csrf import csrf_exempt
 except ImportError:
@@ -43,6 +47,7 @@ from saml2.client import Saml2Client
 from saml2.metadata import entity_descriptor
 from saml2.ident import code, decode
 from saml2.sigver import MissingKey
+from saml2.response import StatusError
 
 from djangosaml2.cache import IdentityCache, OutstandingQueriesCache
 from djangosaml2.cache import StateCache
@@ -93,6 +98,10 @@ def login(request,
         logger.warning('The next parameter exists but is empty')
         came_from = settings.LOGIN_REDIRECT_URL
 
+    # Ensure the user-originating redirection url is safe.
+    if not is_safe_url(url=came_from, host=request.get_host()):
+        came_from = settings.LOGIN_REDIRECT_URL
+
     # if the user is already authenticated that maybe because of two reasons:
     # A) He has this URL in two browser windows and in the other one he
     #    has already initiated the authenticated session.
@@ -113,9 +122,9 @@ def login(request,
             return HttpResponseRedirect(came_from)
         else:
             logger.debug('User is already logged in')
-            return render_to_response(authorization_error_template, {
+            return render(request, authorization_error_template, {
                     'came_from': came_from,
-                    }, context_instance=RequestContext(request))
+                    })
 
     selected_idp = request.GET.get('idp', None)
     conf = get_config(config_loader_path, request)
@@ -124,10 +133,10 @@ def login(request,
     idps = available_idps(conf)
     if selected_idp is None and len(idps) > 1:
         logger.debug('A discovery process is needed')
-        return render_to_response(wayf_template, {
+        return render(request, wayf_template, {
                 'available_idps': idps.items(),
                 'came_from': came_from,
-                }, context_instance=RequestContext(request))
+                })
 
     # Choose binding (REDIRECT vs. POST).
     # When authn_requests_signed is turned on, HTTP Redirect binding cannot be
@@ -170,10 +179,12 @@ def login(request,
             return HttpResponse(result['data'])
         try:
             params = get_hidden_form_inputs(result['data'][3])
-            return render_to_response(post_binding_form_template, {
+            return render(request, post_binding_form_template, {
                     'target_url': result['url'],
                     'params': params,
-                    }, context_instance=RequestContext(request))
+                    })
+        except (DTDForbidden, EntitiesForbidden, ExternalReferenceForbidden):
+            raise PermissionDenied
         except TemplateDoesNotExist:
             return HttpResponse(result['data'])
     else:
@@ -213,6 +224,9 @@ def assertion_consumer_service(request,
     try:
         response = client.parse_authn_request_response(xmlstr, BINDING_HTTP_POST,
                                                        outstanding_queries)
+    except StatusError:
+        return render(request, 'djangosaml2/login_error.html', status=403)
+
     except MissingKey:
         logger.error('MissingKey error in ACS')
         return HttpResponseForbidden(
@@ -240,7 +254,7 @@ def assertion_consumer_service(request,
                              create_unknown_user=create_unknown_user)
     if user is None:
         logger.error('The user is None')
-        return HttpResponseForbidden("Permission denied")
+        return render(request, 'djangosaml2/permission_denied.html', status=403)
 
     auth.login(request, user)
     _set_subject_id(request.session, session_info['name_id'])
@@ -255,6 +269,8 @@ def assertion_consumer_service(request,
     if not relay_state:
         logger.warning('The RelayState parameter exists but is empty')
         relay_state = default_relay_state
+    if not is_safe_url(url=relay_state, host=request.get_host()):
+        came_from = settings.LOGIN_REDIRECT_URL
     logger.debug('Redirecting to the RelayState: %s', relay_state)
     return HttpResponseRedirect(relay_state)
 
@@ -272,8 +288,7 @@ def echo_attributes(request,
     subject_id = _get_subject_id(request.session)
     identity = client.users.get_identity(subject_id,
                                          check_not_on_or_after=False)
-    return render_to_response(template, {'attributes': identity[0]},
-                              context_instance=RequestContext(request))
+    return render(request, template, {'attributes': identity[0]})
 
 
 @login_required
@@ -368,13 +383,13 @@ def do_logout_service(request, data, binding, config_loader_path=None, next_page
                 'The session does not contain the subject id for user %s. Performing local logout',
                 request.user)
             auth.logout(request)
-            return render_to_response(logout_error_template, {},
-                                      context_instance=RequestContext(request))
+            return render(request, logout_error_template, {})
         else:
             http_info = client.handle_logout_request(
                 data['SAMLRequest'],
                 subject_id,
-                binding)
+                binding,
+                relay_state=data.get('RelayState', ''))
             state.sync()
             auth.logout(request)
             return HttpResponseRedirect(get_location(http_info))
@@ -392,7 +407,7 @@ def finish_logout(request, response, next_page=None):
         return django_logout(request, next_page=next_page)
     else:
         logger.error('Unknown error during the logout')
-        return HttpResponse('Error during logout')
+        return render(request, "djangosaml2/logout_error.html", {})
 
 
 def metadata(request, config_loader_path=None, valid_for=None):

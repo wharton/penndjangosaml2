@@ -23,7 +23,7 @@ def read(*rnames):
 
 setup(
     name='djangosaml2',
-    version='0.14.4',
+    version='0.14.5',
     description='pysaml2 integration for Django',
     long_description='\n\n'.join([read('README.rst'), read('CHANGES')]),
     classifiers=[
@@ -32,6 +32,8 @@ setup(
         "Framework :: Django",
         "Framework :: Django :: 1.7",
         "Framework :: Django :: 1.8",
+        "Framework :: Django :: 1.9",
+        "Framework :: Django :: 1.10",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: Apache Software License",
         "Operating System :: OS Independent",
@@ -42,17 +44,17 @@ setup(
         "Topic :: Software Development :: Libraries :: Application Frameworks",
         ],
     keywords="django,pysaml2,sso,saml2,federated authentication,authentication",
-    author="Yaco Sistemas",
+    author="Yaco Sistemas and independent contributors",
     author_email="lgs@yaco.es",
     maintainer="Jozef Knaperek",
     url="https://github.com/knaperek/djangosaml2",
     download_url="https://pypi.python.org/pypi/djangosaml2",
     license='Apache 2.0',
-    packages=find_packages(),
+    packages=find_packages(exclude=["tests", "tests.*"]),
     include_package_data=True,
     zip_safe=False,
     install_requires=[
         'pysaml2==4.0.5',
-        'python-memcached==1.48',
+        'defusedxml==0.4.1'
         ],
     )

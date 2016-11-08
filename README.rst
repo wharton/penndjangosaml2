@@ -1,8 +1,11 @@
-.. contents::
-
 ===========
 djangosaml2
 ===========
+
+.. image:: https://travis-ci.org/knaperek/djangosaml2.svg?branch=master
+    :target: https://travis-ci.org/knaperek/djangosaml2
+    :align: left
+
 
 djangosaml2 is a Django application that integrates the PySAML2 library
 into your project. This mean that you can protect your Django based project
@@ -11,6 +14,7 @@ your Identity Provider allowing you to use this authentication mechanism.
 This document will guide you through a few simple steps to accomplish
 such goal.
 
+.. contents::
 
 Installation
 ============
@@ -209,9 +213,15 @@ We will see a typical configuration for protecting a Django project::
     # set to 1 to output debugging information
     'debug': 1,
 
-    # certificate
+    # Signing
     'key_file': path.join(BASEDIR, 'mycert.key'),  # private part
     'cert_file': path.join(BASEDIR, 'mycert.pem'),  # public part
+    
+    # Encryption
+    'encryption_keypairs': [{
+        'key_file': path.join(BASEDIR, 'my_encryption_key.key'),  # private part
+        'cert_file': path.join(BASEDIR, 'my_encryption_cert.pem'),  # public part
+    }],
 
     # own metadata settings
     'contact_person': [
@@ -307,6 +317,14 @@ Please, use an unique attribute when setting this option. Otherwise
 the authentication process will fail because djangosaml2 does not know
 which Django user it should pick.
 
+If your main attribute is something inherently case-inensitive (such as
+an email address), you may set::
+
+  SAML_DJANGO_USER_MAIN_ATTRIBUTE_LOOKUP = '__iexact'
+
+(This is simply appended to the main attribute name to form a Django
+query. Your main attribute must be unique even given this lookup.)
+
 Another option is to use the SAML2 name id as the username by setting::
 
   SAML_USE_NAME_ID_AS_USERNAME = True
@@ -347,7 +365,42 @@ If you are using Django user profile objects to store extra attributes
 about your user you can add those attributes to the SAML_ATTRIBUTE_MAPPING
 dictionary. For each (key, value) pair, djangosaml2 will try to store the
 attribute in the User model if there is a matching field in that model.
-Otherwise it will try to do the same with your profile custom model.
+Otherwise it will try to do the same with your profile custom model. For 
+multi-valued attributes only the first value is assigned to the destination field.
+
+Alternatively, custom processing of attributes can be achieved by setting the
+value(s) in the SAML_ATTRIBUTE_MAPPING, to name(s) of method(s) defined on a
+custom django User object. In this case, each method is called by djangosaml2,
+passing the full list of attribute values extracted from the <saml:AttributeValue>
+elements of the <saml:Attribute>. Among other uses, this is a useful way to process
+multi-valued attributes such as lists of user group names.
+
+For example::
+
+Saml assertion snippet::
+
+  <saml:Attribute Name="groups" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:basic">
+        <saml:AttributeValue>group1</saml:AttributeValue>
+        <saml:AttributeValue>group2</saml:AttributeValue>
+        <saml:AttributeValue>group3</saml:AttributeValue>
+  </saml:Attribute>
+
+Custom User object::
+
+  from django.contrib.auth.models import AbstractUser
+
+  class User(AbstractUser):
+
+    def process_groups(self, groups):
+      // process list of group names in argument 'groups' 
+      pass;
+
+settings.py::
+
+  SAML_ATTRIBUTE_MAPPING = {
+      'groups': ('process_groups', ),
+  }
+
 
 Learn more about Django profile models at:
 
@@ -362,7 +415,7 @@ following code to your app::
 
   from djangosaml2.signals import pre_user_save
 
-  def custom_update_user(sender=user, attributes=attributes, user_modified=user_modified)
+  def custom_update_user(sender=User, instance, attributes, user_modified, **kargs)
      ...
      return True  # I modified the user object
 

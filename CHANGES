@@ -1,5 +1,10 @@
 Changes
 =======
+0.14.5 (2016-09-19)
+-------------------
+- Django 1.10 support. Thanks to inducer.
+- Various fixes and minor improvements. Thanks to ajsmilutin, ganiserb, inducer, grunichev, liquidpele and darbula
+
 0.14.4 (2016-03-29)
 -------------------
 - Fix compatibility issue with pysaml2-4.0.3+. Thanks to jimr and astoltz.
