@@ -420,7 +420,7 @@ following code to your app::
      return True  # I modified the user object
 
 
-Your handler will receive the user object instance, the list of SAML attributes
+Your handler will receive the user object, the list of SAML attributes
 and a flag telling you if the user is already modified and need
 to be saved after your handler is executed. If your handler
 modifies the user object it should return True. Otherwise it should
