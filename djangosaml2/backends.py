@@ -249,7 +249,8 @@ class Saml2Backend(ModelBackend):
         logger.debug('Sending the pre_save signal')
         signal_modified = any(
             [response for receiver, response
-             in pre_user_save.send_robust(sender=user,
+             in pre_user_save.send_robust(sender=user.__class__,
+                                          instance=user,
                                           attributes=attributes,
                                           user_modified=user_modified)]
             )
