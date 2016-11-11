@@ -145,6 +145,7 @@ We will see a typical configuration for protecting a Django project::
 
   from os import path
   import saml2
+  import saml2.saml
   BASEDIR = path.dirname(path.abspath(__file__))
   SAML_CONFIG = {
     # full path to the xmlsec1 binary programm
