@@ -35,6 +35,7 @@ from django.views.decorators.http import require_POST
 from django.shortcuts import render
 from django.template import TemplateDoesNotExist
 from django.utils.http import is_safe_url
+from django.utils.six import text_type, binary_type
 try:
     from django.views.decorators.csrf import csrf_exempt
 except ImportError:
@@ -165,7 +166,7 @@ def login(request,
             )
     except TypeError as e:
         logger.error('Unable to know which IdP to use')
-        return HttpResponse(unicode(e))
+        return HttpResponse(text_type(e))
 
     logger.debug('Saving the session_id in the OutstandingQueries cache')
     oq_cache = OutstandingQueriesCache(request.session)
@@ -416,7 +417,7 @@ def metadata(request, config_loader_path=None, valid_for=None):
     """
     conf = get_config(config_loader_path, request)
     metadata = entity_descriptor(conf)
-    return HttpResponse(content=str(metadata),
+    return HttpResponse(content=text_type(metadata).encode('utf-8'),
                         content_type="text/xml; charset=utf8")
 
 
