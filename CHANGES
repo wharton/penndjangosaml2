@@ -1,5 +1,13 @@
 Changes
 =======
+0.15.0 (2016-12-18)
+-------------------
+- Python 3.5 support. Thanks to timheap.
+- Added support for callable user attributes. Thanks to andy-miracl and joetsoi.
+- Security improvement: "next" URL is now checked. thanks to flupzor.
+- Improved testability. Thanks to flupzor.
+- Other bugfixes and minor improvements. Thanks to jamaalscarlett, ws0w, jaywink and liquidpele.
+
 0.14.5 (2016-09-19)
 -------------------
 - Django 1.10 support. Thanks to inducer.
