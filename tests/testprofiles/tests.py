@@ -68,3 +68,24 @@ class Saml2BackendTests(TestCase):
             self.assertEquals(user.get_profile().age, '22')
         else:
             self.assertEquals(user.age, '22')
+
+    def test_update_user_callable_attributes(self):
+        user = User.objects.create(username='john')
+
+        backend = Saml2Backend()
+        attribute_mapping = {
+            'uid': ('username', ),
+            'mail': ('email', ),
+            'cn': ('process_first_name', ),
+            'sn': ('last_name', ),
+            }
+        attributes = {
+            'uid': ('john', ),
+            'mail': ('john@example.com', ),
+            'cn': ('John', ),
+            'sn': ('Doe', ),
+            }
+        backend.update_user(user, attributes, attribute_mapping)
+        self.assertEquals(user.email, 'john@example.com')
+        self.assertEquals(user.first_name, 'John')
+        self.assertEquals(user.last_name, 'Doe')
