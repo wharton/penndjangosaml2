@@ -170,7 +170,7 @@ def login(request,
     except UnsupportedBinding as e:
         logger.error('%s: sp_authn_requests_signed=%s and dictates the binding chosen, ensure it matches what the IDP metadata allows' % (
             e, getattr(conf, '_sp_authn_requests_signed', False)))
-        raise NotImplementedError('Unsupported binding: %s', binding)
+        raise
         
     logger.debug('Saving the session_id in the OutstandingQueries cache')
     oq_cache = OutstandingQueriesCache(request.session)
@@ -193,7 +193,7 @@ def login(request,
         except TemplateDoesNotExist:
             return HttpResponse(result['data'])
     else:
-        raise NotImplementedError('Unsupported binding: %s', binding)
+        raise UnsupportedBinding('Unsupported binding: %s', binding)
 
 
 @require_POST
