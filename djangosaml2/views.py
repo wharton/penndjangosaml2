@@ -47,6 +47,7 @@ from saml2.client import Saml2Client
 from saml2.metadata import entity_descriptor
 from saml2.ident import code, decode
 from saml2.sigver import MissingKey
+from saml2.s_utils import UnsupportedBinding
 from saml2.response import StatusError
 
 from djangosaml2.cache import IdentityCache, OutstandingQueriesCache
@@ -166,7 +167,11 @@ def login(request,
     except TypeError as e:
         logger.error('Unable to know which IdP to use')
         return HttpResponse(unicode(e))
-
+    except UnsupportedBinding as e:
+        logger.error('%s: sp_authn_requests_signed=%s and dictates the binding chosen, ensure it matches what the IDP metadata allows' % (
+            e, getattr(conf, '_sp_authn_requests_signed', False)))
+        raise NotImplementedError('Unsupported binding: %s', binding)
+        
     logger.debug('Saving the session_id in the OutstandingQueries cache')
     oq_cache = OutstandingQueriesCache(request.session)
     oq_cache.set(session_id, came_from)
