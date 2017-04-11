@@ -180,7 +180,7 @@ def login(request,
         else:
             # manually get request XML to build our own template
             request_id, request_xml = client.create_authn_request(
-                client._sso_location(selected_idp, binding),
+                client.sso_location(selected_idp, binding),
                 binding=binding)
             return render(request, post_binding_form_template, {
                 'target_url': result['url'],
