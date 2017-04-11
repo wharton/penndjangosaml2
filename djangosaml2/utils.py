@@ -12,15 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from defusedxml import ElementTree
 from django.conf import settings
 
 
 def get_custom_setting(name, default=None):
-    if hasattr(settings, name):
-        return getattr(settings, name)
-    else:
-        return default
+    return getattr(settings, name, default)
 
 
 def available_idps(config, langpref=None):
