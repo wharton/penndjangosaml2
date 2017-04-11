@@ -46,21 +46,3 @@ def get_location(http_info):
     header_name, header_value = headers[0]
     assert header_name == 'Location'
     return header_value
-
-
-def get_hidden_form_inputs(html):
-    """ Extracts name/value pairs from hidden input tags in an html form."""
-    pairs = dict()
-    tree = ElementTree.fromstring(html.replace('&', '&amp;'), forbid_dtd=True)
-    # python 2.6 doesn't have iter
-    if hasattr(tree, 'iter'):
-        node_iter = tree.iter()
-    else:
-        node_iter = tree.getiterator()
-    for node in node_iter:
-        if node.tag == 'input':
-            element = dict(node.items())
-            if element['type'] == 'hidden':
-                pairs[element['name']] = element['value']
-    return pairs
-

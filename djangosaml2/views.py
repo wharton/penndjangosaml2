@@ -13,14 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import base64
 import logging
 
 try:
     from xml.etree import ElementTree
 except ImportError:
     from elementtree import ElementTree
-from defusedxml.common import (DTDForbidden, EntitiesForbidden,
-                               ExternalReferenceForbidden)
 
 from django.conf import settings
 from django.contrib import auth
@@ -54,8 +53,7 @@ from djangosaml2.cache import IdentityCache, OutstandingQueriesCache
 from djangosaml2.cache import StateCache
 from djangosaml2.conf import get_config
 from djangosaml2.signals import post_authenticated
-from djangosaml2.utils import get_custom_setting, available_idps, get_location, \
-    get_hidden_form_inputs
+from djangosaml2.utils import get_custom_setting, available_idps, get_location
 
 
 logger = logging.getLogger('djangosaml2')
@@ -177,17 +175,20 @@ def login(request,
         return HttpResponseRedirect(get_location(result))
     elif binding == BINDING_HTTP_POST:
         if not post_binding_form_template:
+            # use the html provided by pysaml2
             return HttpResponse(result['data'])
-        try:
-            params = get_hidden_form_inputs(result['data'][3])
+        else:
+            # manually get request XML to build our own template
+            request_id, request_xml = client.create_authn_request(
+                client._sso_location(selected_idp, binding),
+                binding=binding)
             return render(request, post_binding_form_template, {
-                    'target_url': result['url'],
-                    'params': params,
-                    })
-        except (DTDForbidden, EntitiesForbidden, ExternalReferenceForbidden):
-            raise PermissionDenied
-        except TemplateDoesNotExist:
-            return HttpResponse(result['data'])
+                'target_url': result['url'],
+                'params': {
+                    'SAMLRequest': base64.b64encode(request_xml),
+                    'RelayState': came_from,
+                    },
+                })
     else:
         raise NotImplementedError('Unsupported binding: %s', binding)
 
