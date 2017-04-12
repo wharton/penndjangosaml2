@@ -48,6 +48,7 @@ from saml2.metadata import entity_descriptor
 from saml2.ident import code, decode
 from saml2.sigver import MissingKey
 from saml2.response import StatusError
+from saml2.xmldsig import SIG_RSA_SHA1  # support for this is required by spec
 
 from djangosaml2.cache import IdentityCache, OutstandingQueriesCache
 from djangosaml2.cache import StateCache
@@ -158,15 +159,15 @@ def login(request,
 
     client = Saml2Client(conf)
     http_response = None
-    
+
     logger.debug('Redirecting user to the IdP via %s binding.', binding)
     if binding == BINDING_HTTP_REDIRECT:
         try:
-            # we use sign kwarg to override in case of redirect binding
-            # otherwise pysaml2 may sign the xml for redirect which is incorrect
+            # do not sign the xml itself, instead us the sigalg to
+            # generate the signature as a URL param
             session_id, result = client.prepare_for_authenticate(
                 entityid=selected_idp, relay_state=came_from,
-                binding=binding, sign=False)
+                binding=binding, sign=False, sigalg=SIG_RSA_SHA1)
         except TypeError as e:
             logger.error('Unable to know which IdP to use')
             return HttpResponse(text_type(e))
