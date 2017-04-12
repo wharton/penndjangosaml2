@@ -161,7 +161,7 @@ def login(request,
     binding = BINDING_HTTP_POST if sign_requests else BINDING_HTTP_REDIRECT
 
     # ensure our selected binding is supported by the IDP
-    supported_bindings = get_idp_sso_supported_bindings(selected_idp)
+    supported_bindings = get_idp_sso_supported_bindings(selected_idp, config=conf)
     if binding not in supported_bindings:
         logger.debug('Binding %s not in IDP %s supported bindings: %s',
                      binding, selected_idp, supported_bindings)
