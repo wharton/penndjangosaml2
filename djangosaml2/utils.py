@@ -49,7 +49,8 @@ def get_idp_sso_supported_bindings(idp_entity_id=None, config=None):
     meta = getattr(config, 'metadata', {})
     # if idp is None, assume only one exists so just use that
     if idp_entity_id is None:
-        idp_entity_id = available_idps(config).keys().pop()
+        # .keys() returns dict_keys in python3.5+
+        idp_entity_id = list(available_idps(config).keys()).pop()
     try:
         return meta.service(idp_entity_id, 'idpsso_descriptor', 'single_sign_on_service').keys()
     except UnknownSystemEntity:
