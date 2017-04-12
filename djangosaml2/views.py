@@ -163,21 +163,21 @@ def login(request,
     # ensure our selected binding is supported by the IDP
     supported_bindings = get_idp_sso_supported_bindings(selected_idp)
     if binding not in supported_bindings:
-        logger.debug('Binding %s not in IDP %s supported bindings: %s' % (
-            binding, selected_idp, supported_bindings))
+        logger.debug('Binding %s not in IDP %s supported bindings: %s',
+                     binding, selected_idp, supported_bindings)
         if binding == BINDING_HTTP_POST:
-            logger.warning('IDP %s does not support %s,  trying %s' % (
-                selected_idp, binding, BINDING_HTTP_REDIRECT))
+            logger.warning('IDP %s does not support %s,  trying %s',
+                           selected_idp, binding, BINDING_HTTP_REDIRECT)
             binding = BINDING_HTTP_REDIRECT
             if sign_requests:
                 sign_requests = False
-                logger.warning('sp_authn_requests_signed is True, but ignoring because pysaml2 does not support it for %s' % BINDING_HTTP_REDIRECT)
+                logger.warning('sp_authn_requests_signed is True, but ignoring because pysaml2 does not support it for %s', BINDING_HTTP_REDIRECT)
         else:
             binding = BINDING_HTTP_POST
         # if switched binding still not supported, give up
         if binding not in supported_bindings:
-            raise UnsupportedBinding('IDP does not support %s or %s' % (
-                BINDING_HTTP_POST, BINDING_HTTP_REDIRECT))
+            raise UnsupportedBinding('IDP does not support %s or %s',
+                                     BINDING_HTTP_POST, BINDING_HTTP_REDIRECT)
 
     client = Saml2Client(conf)
     try:
