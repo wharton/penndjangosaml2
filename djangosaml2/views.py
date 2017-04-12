@@ -156,7 +156,9 @@ def login(request,
     # http://docs.oasis-open.org/security/saml/v2.0/saml-bindings-2.0-os.pdf
     binding = BINDING_HTTP_POST if getattr(conf, '_sp_authn_requests_signed', False) else BINDING_HTTP_REDIRECT
 
+    client = Saml2Client(conf)
     http_response = None
+    
     logger.debug('Redirecting user to the IdP via %s binding.', binding)
     if binding == BINDING_HTTP_REDIRECT:
         try:
