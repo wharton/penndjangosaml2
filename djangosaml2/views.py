@@ -156,34 +156,44 @@ def login(request,
     # http://docs.oasis-open.org/security/saml/v2.0/saml-bindings-2.0-os.pdf
     binding = BINDING_HTTP_POST if getattr(conf, '_sp_authn_requests_signed', False) else BINDING_HTTP_REDIRECT
 
-    client = Saml2Client(conf)
-    try:
-        (session_id, result) = client.prepare_for_authenticate(
-            entityid=selected_idp, relay_state=came_from,
-            binding=binding,
-            )
-    except TypeError as e:
-        logger.error('Unable to know which IdP to use')
-        return HttpResponse(text_type(e))
-
-    logger.debug('Saving the session_id in the OutstandingQueries cache')
-    oq_cache = OutstandingQueriesCache(request.session)
-    oq_cache.set(session_id, came_from)
-
-    logger.debug('Redirecting user to the IdP via %s binding.', binding.split(':')[-1])
+    http_response = None
+    logger.debug('Redirecting user to the IdP via %s binding.', binding)
     if binding == BINDING_HTTP_REDIRECT:
-        return HttpResponseRedirect(get_location(result))
-    elif binding == BINDING_HTTP_POST:
-        if not post_binding_form_template:
-            # use the html provided by pysaml2
-            return HttpResponse(result['data'])
+        try:
+            # we use sign kwarg to override in case of redirect binding
+            # otherwise pysaml2 may sign the xml for redirect which is incorrect
+            session_id, result = client.prepare_for_authenticate(
+                entityid=selected_idp, relay_state=came_from,
+                binding=binding, sign=False)
+        except TypeError as e:
+            logger.error('Unable to know which IdP to use')
+            return HttpResponse(text_type(e))
         else:
-            # manually get request XML to build our own template
-            request_id, request_xml = client.create_authn_request(
-                client.sso_location(selected_idp, binding),
+            http_response = HttpResponseRedirect(get_location(result))
+    elif binding == BINDING_HTTP_POST:
+        # use the html provided by pysaml2 if no template specified
+        if not post_binding_form_template:
+            try:
+                session_id, result = client.prepare_for_authenticate(
+                    entityid=selected_idp, relay_state=came_from,
+                    binding=binding)
+            except TypeError as e:
+                logger.error('Unable to know which IdP to use')
+                return HttpResponse(text_type(e))
+            else:
+                http_response = HttpResponse(result['data'])
+        # get request XML to build our own html based on the template
+        else:
+            try:
+                location = client.sso_location(selected_idp, binding)
+            except TypeError as e:
+                logger.error('Unable to know which IdP to use')
+                return HttpResponse(text_type(e))
+            session_id, request_xml = client.create_authn_request(
+                location,
                 binding=binding)
-            return render(request, post_binding_form_template, {
-                'target_url': result['url'],
+            http_response = render(request, post_binding_form_template, {
+                'target_url': location,
                 'params': {
                     'SAMLRequest': base64.b64encode(request_xml),
                     'RelayState': came_from,
@@ -191,6 +201,12 @@ def login(request,
                 })
     else:
         raise NotImplementedError('Unsupported binding: %s', binding)
+
+    # success, so save the session ID and return our response
+    logger.debug('Saving the session_id in the OutstandingQueries cache')
+    oq_cache = OutstandingQueriesCache(request.session)
+    oq_cache.set(session_id, came_from)
+    return http_response
 
 
 @require_POST
