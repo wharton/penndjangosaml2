@@ -56,7 +56,7 @@ from djangosaml2.cache import StateCache
 from djangosaml2.conf import get_config
 from djangosaml2.signals import post_authenticated
 from djangosaml2.utils import get_custom_setting, available_idps, get_location, \
-    get_hidden_form_inputs
+    get_hidden_form_inputs, get_idp_sso_supported_bindings
 
 
 logger = logging.getLogger('djangosaml2')
@@ -157,21 +157,39 @@ def login(request,
     #
     # Read more in the official SAML2 specs (3.4.4.1):
     # http://docs.oasis-open.org/security/saml/v2.0/saml-bindings-2.0-os.pdf
-    binding = BINDING_HTTP_POST if getattr(conf, '_sp_authn_requests_signed', False) else BINDING_HTTP_REDIRECT
+    sign_requests = getattr(conf, '_sp_authn_requests_signed', False)
+    binding = BINDING_HTTP_POST if sign_requests else BINDING_HTTP_REDIRECT
+
+    # ensure our selected binding is supported by the IDP
+    supported_bindings = get_idp_sso_supported_bindings(selected_idp)
+    if binding not in supported_bindings:
+        logger.debug('Binding %s not in IDP %s supported bindings: %s' % (
+            binding, selected_idp, supported_bindings))
+        if binding == BINDING_HTTP_POST:
+            logger.warning('IDP %s does not support %s,  trying %s' % (
+                selected_idp, binding, BINDING_HTTP_REDIRECT))
+            binding = BINDING_HTTP_REDIRECT
+            if sign_requests:
+                sign_requests = False
+                logger.warning('sp_authn_requests_signed is True, but ignoring because pysaml2 does not support it for %s' % BINDING_HTTP_REDIRECT)
+        else:
+            binding = BINDING_HTTP_POST
+        # if switched binding still not supported, give up
+        if binding not in supported_bindings:
+            raise UnsupportedBinding('IDP does not support %s or %s' % (
+                BINDING_HTTP_POST, BINDING_HTTP_REDIRECT))
 
     client = Saml2Client(conf)
     try:
+        # we use sign kwarg to override in case of redirect binding
+        # otherwise pysaml2 may sign the xml for redirect which is incorrect
         (session_id, result) = client.prepare_for_authenticate(
             entityid=selected_idp, relay_state=came_from,
-            binding=binding,
+            binding=binding, sign=sign_requests,
             )
     except TypeError as e:
         logger.error('Unable to know which IdP to use')
         return HttpResponse(text_type(e))
-    except UnsupportedBinding as e:
-        logger.error('%s: sp_authn_requests_signed=%s and dictates the binding chosen, ensure it matches what the IDP metadata allows' % (
-            e, getattr(conf, '_sp_authn_requests_signed', False)))
-        raise
         
     logger.debug('Saving the session_id in the OutstandingQueries cache')
     oq_cache = OutstandingQueriesCache(request.session)
