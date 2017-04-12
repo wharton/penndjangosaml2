@@ -138,23 +138,6 @@ def login(request,
                 'came_from': came_from,
                 })
 
-    # Choose binding (REDIRECT vs. POST).
-    # When authn_requests_signed is turned on, HTTP Redirect binding cannot be
-    # used the same way as without signatures; proper usage in this case involves
-    # stripping out the signature from SAML XML message and creating a new
-    # signature, following precise steps defined in the SAML2.0 standard.
-    #
-    # It is not feasible to implement this since we wouldn't be able to use an
-    # external (xmlsec1) library to handle the signatures - more (higher level)
-    # context is needed in order to create such signature (like the value of
-    # RelayState parameter).
-    #
-    # Therefore it is much easier to use the HTTP POST binding in this case, as
-    # it can relay the whole signed SAML message as is, without the need to
-    # manipulate the signature or the XML message itself.
-    #
-    # Read more in the official SAML2 specs (3.4.4.1):
-    # http://docs.oasis-open.org/security/saml/v2.0/saml-bindings-2.0-os.pdf
     binding = BINDING_HTTP_POST if getattr(conf, '_sp_authn_requests_signed', False) else BINDING_HTTP_REDIRECT
 
     client = Saml2Client(conf)
@@ -165,9 +148,10 @@ def login(request,
         try:
             # do not sign the xml itself, instead us the sigalg to
             # generate the signature as a URL param
+            sigalg = SIG_RSA_SHA1 if getattr(conf, '_sp_authn_requests_signed', False) else None
             session_id, result = client.prepare_for_authenticate(
                 entityid=selected_idp, relay_state=came_from,
-                binding=binding, sign=False, sigalg=SIG_RSA_SHA1)
+                binding=binding, sign=False, sigalg=sigalg)
         except TypeError as e:
             logger.error('Unable to know which IdP to use')
             return HttpResponse(text_type(e))
