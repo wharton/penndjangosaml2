@@ -13,14 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import base64
 import logging
 
 try:
     from xml.etree import ElementTree
 except ImportError:
     from elementtree import ElementTree
-from defusedxml.common import (DTDForbidden, EntitiesForbidden,
-                               ExternalReferenceForbidden)
 
 from django.conf import settings
 from django.contrib import auth
@@ -49,13 +48,13 @@ from saml2.metadata import entity_descriptor
 from saml2.ident import code, decode
 from saml2.sigver import MissingKey
 from saml2.response import StatusError
+from saml2.xmldsig import SIG_RSA_SHA1  # support for this is required by spec
 
 from djangosaml2.cache import IdentityCache, OutstandingQueriesCache
 from djangosaml2.cache import StateCache
 from djangosaml2.conf import get_config
 from djangosaml2.signals import post_authenticated
-from djangosaml2.utils import get_custom_setting, available_idps, get_location, \
-    get_hidden_form_inputs
+from djangosaml2.utils import get_custom_setting, available_idps, get_location
 
 
 logger = logging.getLogger('djangosaml2')
@@ -139,57 +138,62 @@ def login(request,
                 'came_from': came_from,
                 })
 
-    # Choose binding (REDIRECT vs. POST).
-    # When authn_requests_signed is turned on, HTTP Redirect binding cannot be
-    # used the same way as without signatures; proper usage in this case involves
-    # stripping out the signature from SAML XML message and creating a new
-    # signature, following precise steps defined in the SAML2.0 standard.
-    #
-    # It is not feasible to implement this since we wouldn't be able to use an
-    # external (xmlsec1) library to handle the signatures - more (higher level)
-    # context is needed in order to create such signature (like the value of
-    # RelayState parameter).
-    #
-    # Therefore it is much easier to use the HTTP POST binding in this case, as
-    # it can relay the whole signed SAML message as is, without the need to
-    # manipulate the signature or the XML message itself.
-    #
-    # Read more in the official SAML2 specs (3.4.4.1):
-    # http://docs.oasis-open.org/security/saml/v2.0/saml-bindings-2.0-os.pdf
     binding = BINDING_HTTP_POST if getattr(conf, '_sp_authn_requests_signed', False) else BINDING_HTTP_REDIRECT
 
     client = Saml2Client(conf)
-    try:
-        (session_id, result) = client.prepare_for_authenticate(
-            entityid=selected_idp, relay_state=came_from,
-            binding=binding,
-            )
-    except TypeError as e:
-        logger.error('Unable to know which IdP to use')
-        return HttpResponse(text_type(e))
+    http_response = None
 
+    logger.debug('Redirecting user to the IdP via %s binding.', binding)
+    if binding == BINDING_HTTP_REDIRECT:
+        try:
+            # do not sign the xml itself, instead us the sigalg to
+            # generate the signature as a URL param
+            sigalg = SIG_RSA_SHA1 if getattr(conf, '_sp_authn_requests_signed', False) else None
+            session_id, result = client.prepare_for_authenticate(
+                entityid=selected_idp, relay_state=came_from,
+                binding=binding, sign=False, sigalg=sigalg)
+        except TypeError as e:
+            logger.error('Unable to know which IdP to use')
+            return HttpResponse(text_type(e))
+        else:
+            http_response = HttpResponseRedirect(get_location(result))
+    elif binding == BINDING_HTTP_POST:
+        # use the html provided by pysaml2 if no template specified
+        if not post_binding_form_template:
+            try:
+                session_id, result = client.prepare_for_authenticate(
+                    entityid=selected_idp, relay_state=came_from,
+                    binding=binding)
+            except TypeError as e:
+                logger.error('Unable to know which IdP to use')
+                return HttpResponse(text_type(e))
+            else:
+                http_response = HttpResponse(result['data'])
+        # get request XML to build our own html based on the template
+        else:
+            try:
+                location = client.sso_location(selected_idp, binding)
+            except TypeError as e:
+                logger.error('Unable to know which IdP to use')
+                return HttpResponse(text_type(e))
+            session_id, request_xml = client.create_authn_request(
+                location,
+                binding=binding)
+            http_response = render(request, post_binding_form_template, {
+                'target_url': location,
+                'params': {
+                    'SAMLRequest': base64.b64encode(request_xml),
+                    'RelayState': came_from,
+                    },
+                })
+    else:
+        raise NotImplementedError('Unsupported binding: %s', binding)
+
+    # success, so save the session ID and return our response
     logger.debug('Saving the session_id in the OutstandingQueries cache')
     oq_cache = OutstandingQueriesCache(request.session)
     oq_cache.set(session_id, came_from)
-
-    logger.debug('Redirecting user to the IdP via %s binding.', binding.split(':')[-1])
-    if binding == BINDING_HTTP_REDIRECT:
-        return HttpResponseRedirect(get_location(result))
-    elif binding == BINDING_HTTP_POST:
-        if not post_binding_form_template:
-            return HttpResponse(result['data'])
-        try:
-            params = get_hidden_form_inputs(result['data'][3])
-            return render(request, post_binding_form_template, {
-                    'target_url': result['url'],
-                    'params': params,
-                    })
-        except (DTDForbidden, EntitiesForbidden, ExternalReferenceForbidden):
-            raise PermissionDenied
-        except TemplateDoesNotExist:
-            return HttpResponse(result['data'])
-    else:
-        raise NotImplementedError('Unsupported binding: %s', binding)
+    return http_response
 
 
 @require_POST
