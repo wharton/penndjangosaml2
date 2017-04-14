@@ -1,5 +1,11 @@
 Changes
 =======
+0.16.0 (2017-04-14)
+-------------------
+- Upgrade pysaml2 dependency to version 4.4.0 which fixes some serialization issues. Thanks to nakato for the report.
+- Added support for HTTP Redirect binding with signed authentication requests. Many thanks to liquidpele for this feature and other related refactorings.
+- The custom permission_denied.html template was removed in favor of standard PermissionDenied exception. Thanks to mhindery.
+
 0.15.0 (2016-12-18)
 -------------------
 - Python 3.5 support. Thanks to timheap.
