@@ -47,6 +47,7 @@ from saml2.client import Saml2Client
 from saml2.metadata import entity_descriptor
 from saml2.ident import code, decode
 from saml2.sigver import MissingKey
+from saml2.s_utils import UnsupportedBinding
 from saml2.response import StatusError
 from saml2.xmldsig import SIG_RSA_SHA1  # support for this is required by spec
 
@@ -54,7 +55,7 @@ from djangosaml2.cache import IdentityCache, OutstandingQueriesCache
 from djangosaml2.cache import StateCache
 from djangosaml2.conf import get_config
 from djangosaml2.signals import post_authenticated
-from djangosaml2.utils import get_custom_setting, available_idps, get_location
+from djangosaml2.utils import get_custom_setting, available_idps, get_location, get_idp_sso_supported_bindings
 
 
 logger = logging.getLogger('djangosaml2')
@@ -138,7 +139,28 @@ def login(request,
                 'came_from': came_from,
                 })
 
-    binding = BINDING_HTTP_POST if getattr(conf, '_sp_authn_requests_signed', False) else BINDING_HTTP_REDIRECT
+    # choose a binding to try first
+    sign_requests = getattr(conf, '_sp_authn_requests_signed', False)
+    binding = BINDING_HTTP_POST if sign_requests else BINDING_HTTP_REDIRECT
+    logger.debug('Trying binding %s for IDP %s', binding, selected_idp)
+
+    # ensure our selected binding is supported by the IDP
+    supported_bindings = get_idp_sso_supported_bindings(selected_idp, config=conf)
+    if binding not in supported_bindings:
+        logger.debug('Binding %s not in IDP %s supported bindings: %s',
+                     binding, selected_idp, supported_bindings)
+        if binding == BINDING_HTTP_POST:
+            logger.warning('IDP %s does not support %s,  trying %s',
+                           selected_idp, binding, BINDING_HTTP_REDIRECT)
+            binding = BINDING_HTTP_REDIRECT
+        else:
+            logger.warning('IDP %s does not support %s,  trying %s',
+                           selected_idp, binding, BINDING_HTTP_POST)
+            binding = BINDING_HTTP_POST
+        # if switched binding still not supported, give up
+        if binding not in supported_bindings:
+            raise UnsupportedBinding('IDP %s does not support %s or %s',
+                                     selected_idp, BINDING_HTTP_POST, BINDING_HTTP_REDIRECT)
 
     client = Saml2Client(conf)
     http_response = None
@@ -187,7 +209,7 @@ def login(request,
                     },
                 })
     else:
-        raise NotImplementedError('Unsupported binding: %s', binding)
+        raise UnsupportedBinding('Unsupported binding: %s', binding)
 
     # success, so save the session ID and return our response
     logger.debug('Saving the session_id in the OutstandingQueries cache')
