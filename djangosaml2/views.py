@@ -170,7 +170,7 @@ def login(request,
         try:
             # do not sign the xml itself, instead us the sigalg to
             # generate the signature as a URL param
-            sigalg = SIG_RSA_SHA1 if getattr(conf, '_sp_authn_requests_signed', False) else None
+            sigalg = SIG_RSA_SHA1 if sign_requests else None
             session_id, result = client.prepare_for_authenticate(
                 entityid=selected_idp, relay_state=came_from,
                 binding=binding, sign=False, sigalg=sigalg)
