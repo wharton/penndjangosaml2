@@ -13,10 +13,38 @@
 # limitations under the License.
 
 from django.conf import settings
+from django.contrib.auth.models import Group
 from saml2.s_utils import UnknownSystemEntity
+
+from . import settings as saml_settings
+
+import requests
+
+
+def build_user_groups(user):
+    pennkey = user.username[:-10]
+    headers = {'Authorization': 'Token %s' % settings.WISP_TOKEN}
+    try:
+        response = requests.get(
+            'https://apps.wharton.upenn.edu/wisp/api/v1/penngroups/' + pennkey,
+            headers=headers).json()
+        if response.get('status_code', 200) == 404:
+            return Exception('User not found')
+    except ValueError as err:
+        raise Exception('WISP did not return valid JSON. This may be due to WISP API being down.') from err
+
+    groups = []
+    for penn_group in response.get('groups'):
+        group, created = Group.objects.get_or_create(name=penn_group)
+        groups.append(group)
+    user.groups.set(groups)
+
+    return user
 
 
 def get_custom_setting(name, default=None):
+    if name == 'SAML_ATTRIBUTE_MAPPING':
+        return getattr(saml_settings, name, default)
     return getattr(settings, name, default)
 
 

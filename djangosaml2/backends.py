@@ -13,15 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import logging
-
 from django.conf import settings
 from django.contrib import auth
 from django.contrib.auth.backends import ModelBackend
-from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned, \
-    ImproperlyConfigured
+from django.core.exceptions import (ObjectDoesNotExist, MultipleObjectsReturned,
+    ImproperlyConfigured)
 
 from djangosaml2.signals import pre_user_save
+from djangosaml2.utils import build_user_groups
 
 from . import settings as saml_settings
 
@@ -30,6 +29,8 @@ try:
 except ImportError:
     class SiteProfileNotAvailable(Exception):
         pass
+
+import logging
 
 
 logger = logging.getLogger('djangosaml2')
@@ -114,6 +115,7 @@ class Saml2Backend(ModelBackend):
         return self.get_saml2_user(
             create_unknown_user, main_attribute, attributes, attribute_mapping)
 
+
     def get_attribute_value(self, django_field, attributes, attribute_mapping):
         saml_user = None
         logger.debug('attribute_mapping: %s', attribute_mapping)
@@ -122,11 +124,13 @@ class Saml2Backend(ModelBackend):
                 saml_user = attributes[saml_attr][0]
         return saml_user
 
+
     def is_authorized(self, attributes, attribute_mapping):
         """Hook to allow custom authorization policies based on
         SAML attributes.
         """
         return True
+
 
     def clean_user_main_attribute(self, main_attribute):
         """Performs any cleaning on the user main attribute (which
@@ -136,6 +140,7 @@ class Saml2Backend(ModelBackend):
         By default, returns the attribute unchanged.
         """
         return main_attribute
+
 
     def get_user_query_args(self, main_attribute):
         django_user_main_attribute = getattr(
@@ -147,11 +152,13 @@ class Saml2Backend(ModelBackend):
             django_user_main_attribute + django_user_main_attribute_lookup: main_attribute
         }
 
+
     def get_saml2_user(self, create, main_attribute, attributes, attribute_mapping):
         if create:
             return self._get_or_create_saml2_user(main_attribute, attributes, attribute_mapping)
 
         return self._get_saml2_user(main_attribute, attributes, attribute_mapping)
+
 
     def _get_or_create_saml2_user(self, main_attribute, attributes, attribute_mapping):
         logger.debug('Check if the user "%s" exists or create otherwise',
@@ -178,6 +185,7 @@ class Saml2Backend(ModelBackend):
             user = self.update_user(user, attributes, attribute_mapping)
         return user
 
+
     def _get_saml2_user(self, main_attribute, attributes, attribute_mapping):
         User = get_saml_user_model()
         django_user_main_attribute = saml_settings.SAML_DJANGO_USER_MAIN_ATTRIBUTE
@@ -196,6 +204,7 @@ class Saml2Backend(ModelBackend):
             return None
         return user
 
+
     def configure_user(self, user, attributes, attribute_mapping):
         """Configures a user after creation and returns the updated user.
 
@@ -204,6 +213,7 @@ class Saml2Backend(ModelBackend):
         user.set_unusable_password()
         return self.update_user(user, attributes, attribute_mapping,
                                 force_save=True)
+
 
     def update_user(self, user, attributes, attribute_mapping,
                     force_save=False):
@@ -214,6 +224,9 @@ class Saml2Backend(ModelBackend):
         that field defined it will be set, otherwise it will try to set
         it in the profile object.
         """
+
+        build_user_groups(user)
+
         if not attribute_mapping:
             return user
 
@@ -269,6 +282,7 @@ class Saml2Backend(ModelBackend):
             profile.save()
 
         return user
+
 
     def _set_attribute(self, obj, attr, value):
         """Set an attribute of an object to a specific value.

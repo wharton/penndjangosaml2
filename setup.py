@@ -13,13 +13,16 @@
 # limitations under the License.
 
 
+from setuptools import find_packages, setup
+
 import os
-from setuptools import setup, find_packages
 
 
 def read(*rnames):
     return open(os.path.join(os.path.dirname(__file__), *rnames)).read()
 
+# allow setup.py to be run from any path
+os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 setup(
     name='djangosaml2',
@@ -58,7 +61,9 @@ setup(
     include_package_data=True,
     zip_safe=False,
     install_requires=[
+        'defusedxml==0.4.1',
+        'django-braces==1.11.0',
         'pysaml2==4.4.0',
-        'defusedxml==0.4.1'
-        ],
-    )
+        'requests==2.9.1',
+    ],
+)

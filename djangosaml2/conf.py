@@ -13,10 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import copy
-
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
+from djangosaml2.utils import get_custom_setting
+
 try:
     from importlib import import_module
 except ImportError:
@@ -24,7 +24,9 @@ except ImportError:
 
 from saml2.config import SPConfig
 
-from djangosaml2.utils import get_custom_setting
+from . import settings as saml_settings
+
+import copy
 
 
 def get_config_loader(path, request=None):
@@ -61,7 +63,7 @@ def config_settings_loader(request=None):
     This is also the default config loader.
     """
     conf = SPConfig()
-    conf.load(copy.deepcopy(settings.SAML_CONFIG))
+    conf.load(copy.deepcopy(saml_settings.SAML_CONFIG))
     return conf
 
 
