@@ -225,7 +225,10 @@ class Saml2Backend(ModelBackend):
         it in the profile object.
         """
 
-        build_user_groups(user)
+        """Send the user to get their penngroups created. Data for
+        groups is read from the WISP API.
+        """
+        user = build_user_groups(user)
 
         if not attribute_mapping:
             return user

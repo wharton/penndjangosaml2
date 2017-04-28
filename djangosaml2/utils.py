@@ -31,13 +31,18 @@ def build_user_groups(user):
         if response.get('status_code', 200) == 404:
             return Exception('User not found')
     except ValueError as err:
-        raise Exception('WISP did not return valid JSON. This may be due to WISP API being down.') from err
+        raise Exception(
+            'WISP did not return valid JSON. This may be due to WISP API being down.'
+        ) from err
 
     groups = []
     for penn_group in response.get('groups'):
         group, created = Group.objects.get_or_create(name=penn_group)
-        groups.append(group)
-    user.groups.set(groups)
+        if created:
+            groups.append(group)
+
+    if len(groups):
+        user.groups.set(groups)
 
     return user
 
