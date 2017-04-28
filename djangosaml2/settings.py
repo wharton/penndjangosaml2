@@ -13,7 +13,7 @@ CWD = os.path.dirname(os.path.realpath(__file__))
 HOST_NAME = gethostname()
 
 PATH_NAME = getattr(
-    settings, 'PATH_NAME', '')
+    settings, 'PATH_NAME', '/shibboleth')
 
 BASE_URI = 'https://' + HOST_NAME + PATH_NAME
 
