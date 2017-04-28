@@ -38,8 +38,7 @@ def build_user_groups(user):
     groups = []
     for penn_group in response.get('groups'):
         group, created = Group.objects.get_or_create(name=penn_group)
-        if created:
-            groups.append(group)
+        groups.append(group)
 
     if len(groups):
         user.groups.set(groups)
