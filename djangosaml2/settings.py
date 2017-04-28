@@ -23,7 +23,7 @@ INCLUDE_PENN_GROUPS = getattr(
 
 if hasattr(settings, 'INCLUDE_PENN_GROUPS'):
     for group in DEFAULT_PENN_GROUPS:
-        if group is not in INCLUDE_PENN_GROUPS:
+        if group not in INCLUDE_PENN_GROUPS:
             INCLUDE_PENN_GROUPS += group
 
 PATH_NAME = getattr(
