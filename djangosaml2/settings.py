@@ -19,12 +19,7 @@ HOST_NAME = gethostname()
 DEFAULT_PENN_GROUPS = ('penn:community:staff', 'penn:community:employee',)
 
 INCLUDE_PENN_GROUPS = getattr(
-    settings, 'INCLUDE_PENN_GROUPS', ())
-
-if hasattr(settings, 'INCLUDE_PENN_GROUPS'):
-    for group in DEFAULT_PENN_GROUPS:
-        if group not in INCLUDE_PENN_GROUPS:
-            INCLUDE_PENN_GROUPS += group
+    settings, 'INCLUDE_PENN_GROUPS', DEFAULT_PENN_GROUPS)
 
 PATH_NAME = getattr(
     settings, 'PATH_NAME', '/shibboleth')
