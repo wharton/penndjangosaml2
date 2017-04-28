@@ -38,7 +38,8 @@ def build_user_groups(user):
     groups = []
     for penn_group in response.get('groups'):
         group, created = Group.objects.get_or_create(name=penn_group)
-        groups.append(group)
+        if group in saml_settings.INCLUDE_PENN_GROUPS:
+            groups.append(group)
 
     if len(groups):
         user.groups.set(groups)

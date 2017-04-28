@@ -5,12 +5,26 @@ from saml2 import BINDING_HTTP_POST
 from saml2.saml import NAMEID_FORMAT_UNSPECIFIED
 from socket import gethostname
 
-import os
+import environ, os
 
+env = environ.Env()
+environ.Env.read_env('/etc/app_envvars/shibboleth.variables')
+WISP_TOKEN = env('WISP_TOKEN', default=Exception('djangosaml2 requires a \
+    WISP API token. Please contact admin-apps@wharton.upenn.edu.'))
 
 CWD = os.path.dirname(os.path.realpath(__file__))
 
 HOST_NAME = gethostname()
+
+DEFAULT_PENN_GROUPS = ('penn:community:staff', 'penn:community:employee',)
+
+INCLUDE_PENN_GROUPS = getattr(
+    settings, 'INCLUDE_PENN_GROUPS', ())
+
+if hasattr(settings, 'INCLUDE_PENN_GROUPS'):
+    for group in DEFAULT_PENN_GROUPS:
+        if group is not in INCLUDE_PENN_GROUPS:
+            INCLUDE_PENN_GROUPS += group
 
 PATH_NAME = getattr(
     settings, 'PATH_NAME', '/shibboleth')
