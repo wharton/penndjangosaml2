@@ -18,18 +18,24 @@ from saml2.s_utils import UnknownSystemEntity
 
 from . import settings as saml_settings
 
-import requests
+import logging, requests
+
+logger = logging.getLogger()
+hdlr = logging.FileHandler('/logs/djangosaml2.log')
+formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+hdlr.setFormatter(formatter)
+logger.addHandler(hdlr)
+logger.setLevel(logging.WARNING)
+logger.error(saml_settings.INCLUDE_PENN_GROUPS)
 
 
 def build_user_groups(user):
     pennkey = user.username[:-10]
-    headers = {'Authorization': 'Token %s' % settings.WISP_TOKEN}
+    headers = {'Authorization': 'Token %s' % saml_settings.WISP_TOKEN}
     try:
         response = requests.get(
             'https://apps.wharton.upenn.edu/wisp/api/v1/penngroups/' + pennkey,
             headers=headers).json()
-        if response.get('status_code', 200) == 404:
-            return Exception('User not found')
     except ValueError as err:
         raise Exception(
             'WISP did not return valid JSON. This may be due to WISP API being down.'
@@ -38,11 +44,10 @@ def build_user_groups(user):
     groups = []
     for penn_group in response.get('groups'):
         group, created = Group.objects.get_or_create(name=penn_group)
-        if group in saml_settings.INCLUDE_PENN_GROUPS:
+        if penn_group in saml_settings.INCLUDE_PENN_GROUPS:
             groups.append(group)
 
-    if len(groups):
-        user.groups.set(groups)
+    user.groups.set(groups)
 
     return user
 

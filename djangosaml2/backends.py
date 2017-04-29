@@ -31,8 +31,6 @@ except ImportError:
         pass
 
 import logging
-
-
 logger = logging.getLogger('djangosaml2')
 
 

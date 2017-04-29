@@ -9,8 +9,7 @@ import environ, os
 
 env = environ.Env()
 environ.Env.read_env('/etc/app_envvars/shibboleth.variables')
-WISP_TOKEN = env('WISP_TOKEN', default=Exception('djangosaml2 requires a \
-    WISP API token. Please contact admin-apps@wharton.upenn.edu.'))
+WISP_TOKEN = env('WISP_TOKEN', default=None)
 
 CWD = os.path.dirname(os.path.realpath(__file__))
 
