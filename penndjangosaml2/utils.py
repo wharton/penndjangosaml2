@@ -21,7 +21,7 @@ from . import settings as saml_settings
 import logging, requests
 
 # logger = logging.getLogger()
-# hdlr = logging.FileHandler('/logs/djangosaml2.log')
+# hdlr = logging.FileHandler('/logs/penndjangosaml2.log')
 # formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 # hdlr.setFormatter(formatter)
 # logger.addHandler(hdlr)
@@ -77,7 +77,7 @@ def get_idp_sso_supported_bindings(idp_entity_id=None, config=None):
     This is not clear in the pysaml2 code, so wrapping it in a util"""
     if config is None:
         # avoid circular import
-        from djangosaml2.conf import get_config
+        from penndjangosaml2.conf import get_config
         config = get_config()
     # load metadata store from config
     meta = getattr(config, 'metadata', {})

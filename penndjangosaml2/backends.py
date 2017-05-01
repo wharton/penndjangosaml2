@@ -19,8 +19,8 @@ from django.contrib.auth.backends import ModelBackend
 from django.core.exceptions import (ObjectDoesNotExist, MultipleObjectsReturned,
     ImproperlyConfigured)
 
-from djangosaml2.signals import pre_user_save
-from djangosaml2.utils import build_user_groups
+from penndjangosaml2.signals import pre_user_save
+from penndjangosaml2.utils import build_user_groups
 
 from . import settings as saml_settings
 
@@ -31,7 +31,7 @@ except ImportError:
         pass
 
 import logging
-logger = logging.getLogger('djangosaml2')
+logger = logging.getLogger('penndjangosaml2')
 
 
 def get_model(model_path):
@@ -55,7 +55,7 @@ def get_model(model_path):
 
 def get_saml_user_model():
     try:
-        # djangosaml2 custom user model
+        # penndjangosaml2 custom user model
         return get_model(settings.SAML_USER_MODEL)
     except AttributeError:
         try:

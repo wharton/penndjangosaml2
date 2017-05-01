@@ -14,8 +14,8 @@
 
 from django import template
 
-from djangosaml2.conf import config_settings_loader
-from djangosaml2.utils import available_idps
+from penndjangosaml2.conf import config_settings_loader
+from penndjangosaml2.utils import available_idps
 
 register = template.Library()
 

@@ -25,7 +25,7 @@ else:
 
 from django.test import TestCase
 
-from djangosaml2.backends import Saml2Backend
+from penndjangosaml22.backends import Saml2Backend
 
 if django.VERSION < (1,7):
     from testprofiles.models import TestProfile

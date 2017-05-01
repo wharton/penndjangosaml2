@@ -15,7 +15,7 @@
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
-from djangosaml2.utils import get_custom_setting
+from penndjangosaml2.utils import get_custom_setting
 
 try:
     from importlib import import_module
@@ -69,7 +69,7 @@ def config_settings_loader(request=None):
 
 def get_config(config_loader_path=None, request=None):
     config_loader_path = config_loader_path or get_custom_setting(
-        'SAML_CONFIG_LOADER', 'djangosaml2.conf.config_settings_loader')
+        'SAML_CONFIG_LOADER', 'penndjangosaml2.conf.config_settings_loader')
 
     config_loader = get_config_loader(config_loader_path)
     return config_loader(request)

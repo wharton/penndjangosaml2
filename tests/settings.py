@@ -30,7 +30,7 @@ INSTALLED_APPS = (
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
-    'djangosaml2',
+    'penndjangosaml2',
     'testprofiles',
 )
 
@@ -150,7 +150,7 @@ LOGGING = {
             'level': 'ERROR',
             'propagate': True,
         },
-        'djangosaml2': {
+        'penndjangosaml2': {
             'handlers': ['console'],
             'level': 'DEBUG',
         },
@@ -159,5 +159,5 @@ LOGGING = {
 
 
 AUTHENTICATION_BACKENDS = (
-    'djangosaml2.backends.Saml2Backend',
+    'penndjangosaml2.backends.Saml2Backend',
 )

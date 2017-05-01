@@ -51,14 +51,14 @@ from saml2.s_utils import UnsupportedBinding
 from saml2.response import StatusError
 from saml2.xmldsig import SIG_RSA_SHA1  # support for this is required by spec
 
-from djangosaml2.cache import IdentityCache, OutstandingQueriesCache
-from djangosaml2.cache import StateCache
-from djangosaml2.conf import get_config
-from djangosaml2.signals import post_authenticated
-from djangosaml2.utils import get_custom_setting, available_idps, get_location, get_idp_sso_supported_bindings
+from penndjangosaml2.cache import IdentityCache, OutstandingQueriesCache
+from penndjangosaml2.cache import StateCache
+from penndjangosaml2.conf import get_config
+from penndjangosaml2.signals import post_authenticated
+from penndjangosaml2.utils import get_custom_setting, available_idps, get_location, get_idp_sso_supported_bindings
 
 
-logger = logging.getLogger('djangosaml2')
+logger = logging.getLogger('penndjangosaml2')
 
 
 def _set_subject_id(session, subject_id):
@@ -74,9 +74,9 @@ def _get_subject_id(session):
 
 def login(request,
           config_loader_path=None,
-          wayf_template='djangosaml2/wayf.html',
-          authorization_error_template='djangosaml2/auth_error.html',
-          post_binding_form_template='djangosaml2/post_binding_form.html'):
+          wayf_template='penndjangosaml2/wayf.html',
+          authorization_error_template='penndjangosaml2/auth_error.html',
+          post_binding_form_template='penndjangosaml2/post_binding_form.html'):
     """SAML Authorization Request initiator
 
     This view initiates the SAML2 Authorization handshake
@@ -88,7 +88,7 @@ def login(request,
     binding is being used. You can customize this template to include custom
     branding and/or text explaining the automatic redirection process. Please
     see the example template in
-    templates/djangosaml2/example_post_binding_form.html
+    templates/penndjangosaml2/example_post_binding_form.html
     If set to None or nonexistent template, default form from the saml2 library
     will be rendered.
     """
@@ -229,7 +229,7 @@ def assertion_consumer_service(request,
     The IdP will send its response to this view, which
     will process it with pysaml2 help and log the user
     in using the custom Authorization backend
-    djangosaml2.backends.Saml2Backend that should be
+    penndjangosaml2.backends.Saml2Backend that should be
     enabled in the settings.py
     """
     attribute_mapping = attribute_mapping or get_custom_setting(
@@ -252,7 +252,7 @@ def assertion_consumer_service(request,
         response = client.parse_authn_request_response(xmlstr, BINDING_HTTP_POST,
                                                        outstanding_queries)
     except StatusError:
-        return render(request, 'djangosaml2/login_error.html', status=403)
+        return render(request, 'penndjangosaml2/login_error.html', status=403)
 
     except MissingKey:
         logger.error('MissingKey error in ACS')
@@ -305,7 +305,7 @@ def assertion_consumer_service(request,
 @login_required
 def echo_attributes(request,
                     config_loader_path=None,
-                    template='djangosaml2/echo_attributes.html'):
+                    template='penndjangosaml2/echo_attributes.html'):
     """Example view that echo the SAML attributes of an user"""
     state = StateCache(request.session)
     conf = get_config(config_loader_path, request)
@@ -379,7 +379,7 @@ def logout_service_post(request, *args, **kwargs):
 
 
 def do_logout_service(request, data, binding, config_loader_path=None, next_page=None,
-                   logout_error_template='djangosaml2/logout_error.html'):
+                   logout_error_template='penndjangosaml2/logout_error.html'):
     """SAML Logout Response endpoint
 
     The IdP will send the logout response to this view,
@@ -434,7 +434,7 @@ def finish_logout(request, response, next_page=None):
         return django_logout(request, next_page=next_page)
     else:
         logger.error('Unknown error during the logout')
-        return render(request, "djangosaml2/logout_error.html", {})
+        return render(request, "penndjangosaml2/logout_error.html", {})
 
 
 def metadata(request, config_loader_path=None, valid_for=None):

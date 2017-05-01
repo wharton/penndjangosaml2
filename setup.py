@@ -25,9 +25,9 @@ def read(*rnames):
 os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 setup(
-    name='djangosaml2',
+    name='pennjangosaml2',
     version='0.16.0',
-    description='pysaml2 integration for Django',
+    description='Penn version of pysaml2 integration for Django',
     long_description='\n\n'.join([read('README.rst'), read('CHANGES')]),
     classifiers=[
         "Development Status :: 4 - Beta",
@@ -52,10 +52,9 @@ setup(
         ],
     keywords="django,pysaml2,sso,saml2,federated authentication,authentication",
     author="Yaco Sistemas and independent contributors",
-    author_email="lgs@yaco.es",
-    maintainer="Jozef Knaperek",
-    url="https://github.com/knaperek/djangosaml2",
-    download_url="https://pypi.python.org/pypi/djangosaml2",
+    author_email="sturoscy@wharton.upenn.edu",
+    maintainer="Stephen Turoscy",
+    url="https://github.com/wharton/penndjangosaml2",
     license='Apache 2.0',
     packages=find_packages(exclude=["tests", "tests.*"]),
     include_package_data=True,

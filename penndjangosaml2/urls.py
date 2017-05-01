@@ -15,7 +15,7 @@
 
 import django
 from django.conf.urls import handler500, url
-from djangosaml2 import views
+from penndjangosaml2 import views
 
 urlpatterns = [
     url(r'^login/$', views.login, name='saml2_login'),
