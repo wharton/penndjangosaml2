@@ -1,4 +1,4 @@
-include README
+include README.md
 include CHANGES
 include COPYING
 global-include *.html *.csr *.key *.pem *.xml

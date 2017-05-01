@@ -82,7 +82,7 @@ The next thing you need to do is to include `penndjangosaml2.urls` module to you
 4. Turnaround time for a response is typically 1 to 3 business days. Project timing and management needs to account for this.
 
 #### Note on the above approval process
-Be aware that you will need to do this for each new application and for every stage of development for said application. If you are developing and application that has local dev for testing and three stages of deployment (develop, stage, and production), you will need ISC to add four metadata files from.
+Be aware that you will need to do this for each new application and for every stage of development for said application. If you are developing an application that has local dev for testing and three stages of deployment (develop, stage, and production), you will need ISC to add four metadata files.
 
 Example URL structure:
 1. `https://vagrant.wharton.upenn.edu/<app name>/saml2/metadata` **(local vagrant development)**
