@@ -123,3 +123,6 @@ Please see more here from django-braces [GroupRequiredMixin](https://django-brac
 For more granular object level permissions, you can use django's built-in [permission required decorator](https://docs.djangoproject.com/en/1.11/topics/auth/default/#the-permission-required-decorator) for function-based views or for class-based views, you can use the [permission required mixin](https://docs.djangoproject.com/en/1.11/topics/auth/default/#the-permissionrequiredmixin-mixin)
 
 django-braces also allows for some more powerful level of [permission authorization](https://django-braces.readthedocs.io/en/latest/access.html#permissionrequiredmixin).
+
+# Test Application
+If you are Wharton Computing Staff, there is an application that can be used for testing. You must have [vagrant](https://stash.wharton.upenn.edu/projects/VAGRANT/repos/python-dev/browse) installed first. After you're up an running with vagrant, clone [this repo](https://stash.wharton.upenn.edu/projects/CAOS/repos/django_penn_shibboleth/browse) and follow the instructions in the README.
