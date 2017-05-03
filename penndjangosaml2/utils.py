@@ -36,6 +36,8 @@ def build_user_groups(user):
         response = requests.get(
             'https://apps.wharton.upenn.edu/wisp/api/v1/penngroups/' + pennkey,
             headers=headers).json()
+        if hasattr(response, 'error'):
+            return user
     except ValueError as err:
         raise Exception(
             'WISP did not return valid JSON. This may be due to WISP API being down.'
