@@ -57,11 +57,11 @@ SAML_CONFIG_DEFAULT = {
         'local': [os.path.join(CWD, 'assets/metadata.xml')],
     },
     'debug': 1,
-    'key_file': os.path.join(CWD, 'pki/shibkey.pem'),
-    'cert_file': os.path.join(CWD, 'pki/shibcert.pem'),
+    'key_file': '/etc/shibboleth/pki/shibkey.pem',
+    'cert_file': '/etc/shibboleth/pki/shibcert.pem',
     'encryption_keypairs': [{
-        'key_file': os.path.join(CWD, 'pki/shibkey.pem'),
-        'cert_file': os.path.join(CWD, 'pki/shibcert.pem'),
+        'key_file': '/etc/shibboleth/pki/shibkey.pem',
+        'cert_file': '/etc/shibboleth/pki/shibcert.pem',
     }],
     'contact_person': [
         {
