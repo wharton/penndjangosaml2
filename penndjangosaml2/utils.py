@@ -20,17 +20,19 @@ from . import settings as saml_settings
 
 import logging, requests
 
-# logger = logging.getLogger()
-# hdlr = logging.FileHandler('/logs/penndjangosaml2.log')
-# formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
-# hdlr.setFormatter(formatter)
-# logger.addHandler(hdlr)
-# logger.setLevel(logging.WARNING)
-# logger.error(saml_settings.INCLUDE_PENN_GROUPS)
+logger = logging.getLogger()
+hdlr = logging.FileHandler('/logs/penndjangosaml2.log')
+formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+hdlr.setFormatter(formatter)
+logger.addHandler(hdlr)
+logger.setLevel(logging.WARNING)
+logger.error(saml_settings.INCLUDE_PENN_GROUPS)
 
 
 def build_user_groups(user):
-    pennkey = user.username.split('.upenn.edu')[0]
+    # Strip off .upenn.edu part of username
+    pennkey = user.username[:-10]
+    logger.error(pennkey)
     headers = {'Authorization': 'Token %s' % saml_settings.WISP_TOKEN}
     try:
         response = requests.get(
