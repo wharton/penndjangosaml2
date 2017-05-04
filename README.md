@@ -39,6 +39,19 @@ Then you have to add the `penndjangosaml2.backends.Saml2Backend` authentication 
     )
 ```
 
+#### Private key and public certificate
+
+pysaml2 uses a key/pair to encrypt/sign assertions. For Wharton Computing folks, these are currently generated on cdl-django0101 (csl-django0101 and cpl will be updated soon); however, if you are running locally in vagrant you will either need to provide a location to your self-signed key/certs or generate them directly in `/etc/shibboleth/pki/shibcert|key.pem`.
+
+To generate your own, run the following: `openssl req -x509 -newkey rsa:4096 -keyout shibkey.pem -out shibcert.pem -days 365 -nodes -sha256` and answer the resulting prompts.
+
+The settings for providing your own are (you can omit these if deploying to cdl-django0101):
+
+``` python
+    CERT_FILE = '/absolute/path/to/certfile.pem
+    KEY_FILE = '/absolute/path/to/keyfile.pem
+```
+
 Finally we have to let Django know of a few additional settings:
 
 ``` python
