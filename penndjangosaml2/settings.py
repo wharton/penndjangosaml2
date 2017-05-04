@@ -25,6 +25,12 @@ PATH_NAME = getattr(
 
 BASE_URI = 'https://' + HOST_NAME + PATH_NAME
 
+CERT_FILE = getattr(
+    settings, 'CERT_FILE', '/etc/shibboleth/pki/shibcert.pem')
+
+KEY_FILE = getattr(
+    settings, 'KEY_FILE', '/etc/shibboleth/pki/shibkey.pem')
+
 SAML_DJANGO_USER_MAIN_ATTRIBUTE = getattr(
     settings, 'SAML_DJANGO_USER_MAIN_ATTRIBUTE', 'username')
 
@@ -57,11 +63,11 @@ SAML_CONFIG_DEFAULT = {
         'local': [os.path.join(CWD, 'assets/metadata.xml')],
     },
     'debug': 1,
-    'key_file': '/etc/shibboleth/pki/shibkey.pem',
-    'cert_file': '/etc/shibboleth/pki/shibcert.pem',
+    'key_file': KEY_FILE,
+    'cert_file': CERT_FILE,
     'encryption_keypairs': [{
-        'key_file': '/etc/shibboleth/pki/shibkey.pem',
-        'cert_file': '/etc/shibboleth/pki/shibcert.pem',
+        'key_file': KEY_FILE,
+        'cert_file': CERT_FILE,
     }],
     'contact_person': [
         {
