@@ -25,7 +25,7 @@ def read(*rnames):
 os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 setup(
-    name='pennjangosaml2',
+    name='penndjangosaml2',
     version='0.16.0',
     description='Penn version of pysaml2 integration for Django',
     long_description='\n\n'.join([read('README.md'), read('CHANGES')]),

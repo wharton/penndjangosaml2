@@ -30,7 +30,9 @@ import logging, requests
 
 
 def build_user_groups(user):
+   # Strip off .upenn.edu part of username
     pennkey = user.username.split('@upenn.edu')[0]
+
     headers = {'Authorization': 'Token %s' % saml_settings.WISP_TOKEN}
     try:
         response = requests.get(
