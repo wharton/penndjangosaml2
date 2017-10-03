@@ -26,7 +26,6 @@ import logging, requests
 # hdlr.setFormatter(formatter)
 # logger.addHandler(hdlr)
 # logger.setLevel(logging.WARNING)
-# logger.error(saml_settings.INCLUDE_PENN_GROUPS)
 
 
 def build_user_groups(user):
