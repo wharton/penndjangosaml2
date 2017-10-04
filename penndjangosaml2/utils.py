@@ -50,7 +50,7 @@ def build_user_groups(user):
         if penn_group in saml_settings.INCLUDE_PENN_GROUPS:
             groups.append(group)
 
-    user.groups.set(groups)
+    user.groups.add(*groups)
 
     return user
 
