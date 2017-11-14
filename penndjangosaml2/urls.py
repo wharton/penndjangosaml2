@@ -18,7 +18,7 @@ from django.conf.urls import handler500, url
 from penndjangosaml2 import views
 
 urlpatterns = [
-    url(r'^login/$', views.login, name='saml2_login'),
+    url(r'^penn-login/$', views.login, name='saml2_login'),
     url(r'^acs/$', views.assertion_consumer_service, name='saml2_acs'),
     url(r'^logout/$', views.logout, name='saml2_logout'),
     url(r'^ls/$', views.logout_service, name='saml2_ls'),
