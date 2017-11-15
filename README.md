@@ -79,8 +79,7 @@ The next thing you need to do is to include `penndjangosaml2.urls` module to you
     urlpatterns = patterns( '',
         #  lots of url definitions here
 
-        url(r'^penn-logout', penn_logout, name='logout'),
-        (r'^saml2/', include('penndjangosaml2.urls')),
+        url(r'^saml2/', include('penndjangosaml2.urls')),
 
         #  more url definitions
     )
