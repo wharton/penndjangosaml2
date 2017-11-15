@@ -56,7 +56,7 @@ Finally we have to let Django know of a few additional settings:
 
 ``` python
     PATH_NAME = '/<your_url_path_name>'
-    LOGIN_URL = PATH_NAME + '/saml2/login/'
+    LOGIN_URL = PATH_NAME + '/saml2/penn-login/'
     LOGOUT_URL = PATH_NAME + '/penn-logout/'
 ```
 
