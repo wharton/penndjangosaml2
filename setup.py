@@ -63,7 +63,7 @@ setup(
         'defusedxml==0.4.1',
         'django-braces==1.11.0',
         'django-environ==0.4.0',
-        'pysaml2==4.4.0',
+        'pysaml2>=4.5,<4.6',
         'requests==2.9.1',
     ],
 )
