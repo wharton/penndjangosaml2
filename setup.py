@@ -11,7 +11,7 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 setup(
     name='penndjangosaml2',
-    version='0.16.0',
+    version='0.16.1',
     description='Penn version of pysaml2 integration for Django',
     long_description='\n\n'.join([read('README.md'), read('CHANGES')]),
     classifiers=[
