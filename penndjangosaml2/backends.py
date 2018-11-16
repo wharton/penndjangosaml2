@@ -73,7 +73,7 @@ def get_saml_user_model():
 
 class Saml2Backend(ModelBackend):
 
-    def authenticate(self, session_info=None, attribute_mapping=None,
+    def authenticate(self, request, session_info=None, attribute_mapping=None,
                      create_unknown_user=True, **kwargs):
 
         logger.info('Authenticating...')
