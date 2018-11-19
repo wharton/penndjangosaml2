@@ -5,7 +5,8 @@ from saml2 import BINDING_HTTP_POST
 from saml2.saml import NAMEID_FORMAT_UNSPECIFIED
 from socket import gethostname
 
-import environ, os
+import environ
+import os
 
 env = environ.Env()
 environ.Env.read_env('/etc/app_envvars/shibboleth.variables')
@@ -13,7 +14,7 @@ WISP_TOKEN = env('WISP_TOKEN', default=None)
 
 CWD = os.path.dirname(os.path.realpath(__file__))
 
-HOST_NAME = gethostname()
+HOST_NAME = getattr(settings, 'HOST_NAME', gethostname())
 
 DEFAULT_PENN_GROUPS = ('penn:community:staff', 'penn:community:employee',)
 
@@ -21,7 +22,7 @@ INCLUDE_PENN_GROUPS = getattr(
     settings, 'INCLUDE_PENN_GROUPS', DEFAULT_PENN_GROUPS)
 
 PATH_NAME = getattr(
-    settings, 'PATH_NAME', '/shibboleth')
+    settings, 'PATH_NAME', 'shibboleth')
 
 BASE_URI = 'https://' + HOST_NAME + PATH_NAME
 
@@ -30,6 +31,9 @@ CERT_FILE = getattr(
 
 KEY_FILE = getattr(
     settings, 'KEY_FILE', '/etc/shibboleth/pki/shibkey.pem')
+
+MAX_GROUP_NAME_LENGTH = getattr(
+    settings, 'MAX_GROUP_NAME_LENGTH', 80)
 
 SAML_DJANGO_USER_MAIN_ATTRIBUTE = getattr(
     settings, 'SAML_DJANGO_USER_MAIN_ATTRIBUTE', 'username')
@@ -42,21 +46,21 @@ SESSION_EXPIRE_AT_BROWSER_CACHE = getattr(
 
 SAML_CONFIG_DEFAULT = {
     'xmlsec_binary': '/usr/bin/xmlsec1',
-    'entityid': BASE_URI + '/saml2/metadata/',
+    'entityid': BASE_URI + 'saml2/metadata/',
     'service': {
-        'sp' : {
+        'sp': {
             'name': 'Penn Django Shibboleth Authentication',
             'endpoints': {
                 'assertion_consumer_service': [
-                    (BASE_URI + '/saml2/acs/', BINDING_HTTP_POST),
+                    (BASE_URI + 'saml2/acs/', BINDING_HTTP_POST),
                 ],
                 'single_logout_service': [
-                    (BASE_URI + '/saml2/ls/', BINDING_HTTP_REDIRECT),
-                    (BASE_URI + '/saml2/ls/post/', BINDING_HTTP_POST),
+                    (BASE_URI + 'saml2/ls/', BINDING_HTTP_REDIRECT),
+                    (BASE_URI + 'saml2/ls/post/', BINDING_HTTP_POST),
                 ],
             },
-            'required_attributes': ['eduPersonAffiliation','eduPersonPrincipalName'],
-            'optional_attributes': ['sn','givenName','mail'],
+            'required_attributes': ['eduPersonAffiliation', 'eduPersonPrincipalName'],
+            'optional_attributes': ['sn', 'givenName', 'mail'],
         },
     },
     'metadata': {

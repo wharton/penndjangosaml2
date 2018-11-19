@@ -17,8 +17,11 @@ from django.contrib.auth.models import Group
 from saml2.s_utils import UnknownSystemEntity
 
 from . import settings as saml_settings
+from .models import LongGroupName
+from django.db.models import F
+# import logging
+import requests
 
-import logging, requests
 
 # logger = logging.getLogger()
 # hdlr = logging.FileHandler('/logs/penndjangosaml2.log')
@@ -26,6 +29,7 @@ import logging, requests
 # hdlr.setFormatter(formatter)
 # logger.addHandler(hdlr)
 # logger.setLevel(logging.WARNING)
+# logger.error(saml_settings.INCLUDE_PENN_GROUPS)
 
 
 def build_user_groups(user):
@@ -42,14 +46,23 @@ def build_user_groups(user):
         raise Exception(
             'WISP did not return valid JSON. This may be due to WISP API being down.'
         ) from err
+    groups = response.get('groups')
+    include_penn_groups = saml_settings.INCLUDE_PENN_GROUPS
+    for penn_group in groups:
+        if penn_group in include_penn_groups:
+            if len(penn_group) <= saml_settings.MAX_GROUP_NAME_LENGTH:
+                group, created = Group.objects.get_or_create(name=str(penn_group))
+                if not user.groups.filter(name=str(penn_group)).exists():
+                    user.groups.add(group)
+            else:
+                g, created = LongGroupName.objects.get_or_create(group_name=penn_group)
+                g.count = g.count + 1
+                g.save()
+    for group in user.groups.all():
+        if group.name not in groups:
+            user.groups.remove(group)
 
-    groups = []
-    for penn_group in response.get('groups'):
-        group, created = Group.objects.get_or_create(name=penn_group)
-        if penn_group in saml_settings.INCLUDE_PENN_GROUPS:
-            groups.append(group)
-
-    user.groups.add(*groups)
+    user.save()
 
     return user
 

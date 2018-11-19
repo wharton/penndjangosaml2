@@ -30,14 +30,8 @@ except ImportError:
     class SiteProfileNotAvailable(Exception):
         pass
 
-import logging, os
-
+import logging
 logger = logging.getLogger('penndjangosaml2')
-hdlr = logging.FileHandler(settings.BASE_DIR + '/logs/penndjangosaml2.log')
-formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
-hdlr.setFormatter(formatter)
-logger.addHandler(hdlr)
-logger.setLevel(logging.INFO)
 
 
 def get_model(model_path):
@@ -75,20 +69,17 @@ class Saml2Backend(ModelBackend):
 
     def authenticate(self, request, session_info=None, attribute_mapping=None,
                      create_unknown_user=True, **kwargs):
-
-        logger.info('Authenticating...')
-
         if session_info is None or attribute_mapping is None:
-            logger.info('Session info or attribute mapping are None')
+            logger.error('Session info or attribute mapping are None')
             return None
 
         if not 'ava' in session_info:
-            logger.info('"ava" key not found in session_info')
+            logger.error('"ava" key not found in session_info')
             return None
 
         attributes = session_info['ava']
         if not attributes:
-            logger.info('The attributes dictionary is empty')
+            logger.error('The attributes dictionary is empty')
 
         use_name_id_as_username = getattr(
             settings, 'SAML_USE_NAME_ID_AS_USERNAME', False)
@@ -96,19 +87,19 @@ class Saml2Backend(ModelBackend):
         django_user_main_attribute = saml_settings.SAML_DJANGO_USER_MAIN_ATTRIBUTE
         django_user_main_attribute_lookup = saml_settings.SAML_DJANGO_USER_MAIN_ATTRIBUTE_LOOKUP
 
-        logger.info('attributes: %s', attributes)
+        logger.debug('attributes: %s', attributes)
         saml_user = None
         if use_name_id_as_username:
             if 'name_id' in session_info:
-                logger.info('name_id: %s', session_info['name_id'])
+                logger.debug('name_id: %s', session_info['name_id'])
                 saml_user = session_info['name_id'].text
             else:
-                logger.info('The nameid is not available. Cannot find user without a nameid.')
+                logger.error('The nameid is not available. Cannot find user without a nameid.')
         else:
             saml_user = self.get_attribute_value(django_user_main_attribute, attributes, attribute_mapping)
 
         if saml_user is None:
-            logger.info('Could not find saml_user value')
+            logger.error('Could not find saml_user value')
             return None
 
         if not self.is_authorized(attributes, attribute_mapping):
@@ -125,7 +116,7 @@ class Saml2Backend(ModelBackend):
 
     def get_attribute_value(self, django_field, attributes, attribute_mapping):
         saml_user = None
-        logger.info('attribute_mapping: %s', attribute_mapping)
+        logger.debug('attribute_mapping: %s', attribute_mapping)
         for saml_attr, django_fields in attribute_mapping.items():
             if django_field in django_fields and saml_attr in attributes:
                 saml_user = attributes[saml_attr][0]
@@ -168,7 +159,7 @@ class Saml2Backend(ModelBackend):
 
 
     def _get_or_create_saml2_user(self, main_attribute, attributes, attribute_mapping):
-        logger.info('Check if the user "%s" exists or create otherwise',
+        logger.debug('Check if the user "%s" exists or create otherwise',
                      main_attribute)
         django_user_main_attribute = saml_settings.SAML_DJANGO_USER_MAIN_ATTRIBUTE
         django_user_main_attribute_lookup = saml_settings.SAML_DJANGO_USER_MAIN_ATTRIBUTE_LOOKUP
@@ -180,15 +171,15 @@ class Saml2Backend(ModelBackend):
             user, created = User.objects.get_or_create(
                 defaults=user_create_defaults, **user_query_args)
         except MultipleObjectsReturned:
-            logger.info("There are more than one user with %s = %s",
+            logger.error("There are more than one user with %s = %s",
                          django_user_main_attribute, main_attribute)
             return None
 
         if created:
-            logger.info('New user created')
+            logger.debug('New user created')
             user = self.configure_user(user, attributes, attribute_mapping)
         else:
-            logger.info('User updated')
+            logger.debug('User updated')
             user = self.update_user(user, attributes, attribute_mapping)
         return user
 
@@ -198,15 +189,15 @@ class Saml2Backend(ModelBackend):
         django_user_main_attribute = saml_settings.SAML_DJANGO_USER_MAIN_ATTRIBUTE
         user_query_args = self.get_user_query_args(main_attribute)
 
-        logger.info('Retrieving existing user "%s"', main_attribute)
+        logger.debug('Retrieving existing user "%s"', main_attribute)
         try:
             user = User.objects.get(**user_query_args)
             user = self.update_user(user, attributes, attribute_mapping)
         except User.DoesNotExist:
-            logger.info('The user "%s" does not exist', main_attribute)
+            logger.error('The user "%s" does not exist', main_attribute)
             return None
         except MultipleObjectsReturned:
-            logger.info("There are more than one user with %s = %s",
+            logger.error("There are more than one user with %s = %s",
                          django_user_main_attribute, main_attribute)
             return None
         return user
@@ -275,7 +266,7 @@ class Saml2Backend(ModelBackend):
                 # the saml attribute is missing
                 pass
 
-        logger.info('Sending the pre_save signal')
+        logger.debug('Sending the pre_save signal')
         signal_modified = any(
             [response for receiver, response
              in pre_user_save.send_robust(sender=user.__class__,
