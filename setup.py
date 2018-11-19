@@ -45,10 +45,10 @@ setup(
     include_package_data=True,
     zip_safe=False,
     install_requires=[
-        'defusedxml==0.4.1',
+        'defusedxml==0.5.0',
         'django-braces==1.11.0',
-        'django-environ==0.4.0',
-        'pysaml2>=4.5,<4.6',
-        'requests>=2.20',
+        'django-environ==0.4.5',
+        'pysaml2==4.6.3',
+        'requests==2.20.1',
     ],
 )
