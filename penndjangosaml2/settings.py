@@ -35,6 +35,9 @@ KEY_FILE = getattr(
 MAX_GROUP_NAME_LENGTH = getattr(
     settings, 'MAX_GROUP_NAME_LENGTH', 80)
 
+SAML_CONFIG_SP_ALLOW_UNSOLICITED = getattr(
+    settings, 'SAML_CONFIG_SP_ALLOW_UNSOLICITED', True)
+
 SAML_DJANGO_USER_MAIN_ATTRIBUTE = getattr(
     settings, 'SAML_DJANGO_USER_MAIN_ATTRIBUTE', 'username')
 
@@ -50,6 +53,7 @@ SAML_CONFIG_DEFAULT = {
     'service': {
         'sp': {
             'name': 'Penn Django Shibboleth Authentication',
+            'allow_unsolicited': SAML_CONFIG_SP_ALLOW_UNSOLICITED,
             'endpoints': {
                 'assertion_consumer_service': [
                     (BASE_URI + 'saml2/acs/', BINDING_HTTP_POST),
